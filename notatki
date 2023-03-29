@@ -1,0 +1,9 @@
+car:
+    prędkość
+    max speed
+    kierunek (nswe)?
+
+road:
+    początek
+    koniec
+    (angle)?
