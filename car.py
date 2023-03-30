@@ -1,3 +1,5 @@
+import random
+
 from traffic_simulation.map import Map
 from traffic_simulation.road import Road
 from traffic_simulation.direction import MoveDirection
@@ -13,8 +15,9 @@ class Car:
         self.map = map
         self.v = 0
         self.__ACCELERATION = 1
+        self.__PROPABILITY = 0.2
 
-    def update_position(self, position):
+    def change_position(self, position):
         self.position = position
 
     def update_v(self, v):
@@ -24,12 +27,33 @@ class Car:
         if self.v < self.road.get_v_max():
             self.update_v(self.v + self.__ACCELERATION)
         else:
-            pass
+            pass  # car can't drive faster ;)
 
-    def deacceleration(self, car_before: Car): ## car befor from street (create function)
-        #obliczanie odległości (chyva w klasie street)
-        ...
+    def deacceleration(self):
+        car_before = self.road.car_before(self)
+        distance = self.road.distance(self, car_before)
 
+        if self.v > distance:
+            self.update_v(distance)
+        else:
+            pass  # deceleration is not necessary
+
+    def random_events(self):
+        if self.v > 0 and random.random() < self.__PROPABILITY:
+            self.update_v(self.v - 1)
+        else:
+            pass  # everything ok
+
+    def move(self):
+        self.update_acceleration()
+        self.deacceleration()
+        self.random_events()
+
+        if self.direction == MoveDirection.N:
+            new_position = Vector_2d(self.position.x, self.position.y + s) ## oblicz nową pozycję (zastanów się nad wyjściem poza mapę)
+
+
+        self.change_position(self.position.x + self.v)
 
     def get_position(self):
         return self.position
