@@ -1,4 +1,5 @@
 import numpy as np
+import pandas as pd
 
 
 class Matrix:
@@ -36,76 +37,52 @@ class Matrix:
             for j in range(size):  # columns in multiply
                 sum = 0
                 for k in range(size):  # columns in first and rows in second
-                    sum += self.multiply(first[i][k], second[k][j])
+                    sum += first[i][k] * second[k][j]
+                    self.operaction_counter += 1
                 m[i][j] = sum
         return np.array(m)
 
-    # def multiply(self, a, b):
-    #     if a == 1:
-    #         return b
-    #     if b < 0:
-    #         return -self.multiply(a, -b)
-    #     elif b == 1:
-    #         return a
-    #     else:
-    #         b -= 1
-    #         # global operation_counter
-    #         # operation_counter += 2
-    #         return a + self.multiply(a, b)
+    def recursive_lu(self, A):
+        n = len(A)
+        L = np.zeros((n, n))
+        U = np.zeros((n, n))
+
+        if n == 1:
+            L[0, 0] = 1
+            U[0, 0] = A[0, 0]
+        else:
+            m = n // 2
+            L11, U11 = self.recursive_lu(A[:m, :m])
+            L21 = self.recurMatrixMultiplication(A[m:, :m], self.matrix_inverse_recursive(U11))
+            U12 = self.recurMatrixMultiplication(A[:m, m:], self.matrix_inverse_recursive(L11))
+            L22, U22 = self.recursive_lu(A[m:, m:] - self.recurMatrixMultiplication(L21, U12))
+
+            L[:m, :m] = L11
+            L[m:, :m] = L21
+            L[m:, m:] = L22
+
+            U[:m, :m] = U11
+            U[:m, m:] = U12
+            U[m:, m:] = U22
+
+        return L, U
 
 
 
 
+
+# Definicja macierzy A o wymiarach 4x4
+A = np.array([[1, 2, 3, 4],
+              [5, 6, 7, 8],
+              [9, 10, 11, 12],
+              [13, 14, 15, 16]])
+
+# A = np.array([[1,2],[4,5]])
+# Wywołanie algorytmu rekurencyjnej faktoryzacji LU
 matrix = Matrix()
+L, U = matrix.recursive_lu(A)
 
-arr = np.array([[1, 2], [3, 4]])
-arr2 = np.array([[2, 1, 0, 1],
-                 [3, 2, 1, 0],
-                 [1, 0, 2, 1],
-                 [0, 3, 1, 2]])
-#matrix.matrix_inverse_recursive(arr)
-#print(matrix.matrix_inverse_recursive(arr2))
-# res = matrix.matrix_inverse_recursive(arr)
-# print(res)
-
-
-def multiply(a, b):
-    if b == 0:
-        return 0
-    elif b > 0:
-        return a + multiply(a, b-1)
-    else:
-        return -multiply(a, -b)
-
-
-
-
-
-# print(multiply(np.array([2]),np.array([-0.5])))
-print(multiply(2,-2))
-
-
-def recursive_lu(self, A):
-    n = len(A)
-    L = np.zeros((n, n))
-    U = np.zeros((n, n))
-
-    if n == 1:
-        L[0, 0] = 1
-        U[0, 0] = A[0, 0]
-    else:
-        m = n // 2
-        L11, U11 = self.recursive_lu(A[:m, :m])
-        L21 = A[m:, :m] @ np.linalg.inv(U11)
-        U12 = A[:m, m:] @ np.linalg.inv(L11)
-        L22, U22 = self.recursive_lu(A[m:, m:] - L21 @ U12)
-
-        L[:m, :m] = L11
-        L[m:, :m] = L21
-        L[m:, m:] = L22
-
-        U[:m, :m] = U11
-        U[:m, m:] = U12
-        U[m:, m:] = U22
-
-    return L, U
+# Wyświetlenie wyników
+print("Macierz A:\n", A)
+print("Macierz L:\n", L)
+print("Macierz U:\n", U)

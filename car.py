@@ -3,7 +3,6 @@ import random
 from traffic_simulation.map import Map
 from traffic_simulation.road import Road
 from traffic_simulation.direction import MoveDirection
-from traffic_simulation.car import Car
 from traffic_simulation.vector_2d import Vector_2d
 
 
@@ -49,11 +48,39 @@ class Car:
         self.deacceleration()
         self.random_events()
 
+        # if road direction N
         if self.direction == MoveDirection.N:
-            new_position = Vector_2d(self.position.x, self.position.y + s) ## oblicz nową pozycję (zastanów się nad wyjściem poza mapę)
+            new_position = Vector_2d(self.position.x, self.position.y + self.v)
+            if new_position <= self.road.lenght:  # to zależy jak będzie lenght (ew + - 1)
+                pass  # valid position
+            else:
+                new_position.y -= self.road.lenght  # to zależy jak będzie lenght (ew + - 1)
 
+        # if road direction S
+        elif self.direction == MoveDirection.S:
+            new_position = Vector_2d(self.position.x, self.position.y - self.v)
+            if new_position.y >= 0:
+                pass  # valid position
+            else:
+                new_position.y += self.road.lenght  # to zależy jak będzie lenght (ew + - 1)
 
-        self.change_position(self.position.x + self.v)
+        # if road direction W
+        elif self.direction == MoveDirection.S:
+            new_position = Vector_2d(self.position.x - self.v, self.position.y)
+            if new_position.x >= 0:
+                pass  # valid position
+            else:
+                new_position.x += self.road.lenght  # to zależy jak będzie lenght (ew + - 1)
+
+        # if road direction S
+        elif self.direction == MoveDirection.S:
+            new_position = Vector_2d(self.position.x + self.v, self.position.y)
+            if new_position <= self.road.lenght:  # to zależy jak będzie lenght (ew + - 1)
+                pass  # valid position
+            else:
+                new_position.y -= self.road.lenght  # to zależy jak będzie lenght (ew + - 1)
+
+        self.change_position(new_position)
 
     def get_position(self):
         return self.position
