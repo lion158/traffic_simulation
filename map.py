@@ -1,6 +1,8 @@
 
 class Map:
-    def __init__(self):
-        self.map = [[0,0,0], [0,0,1], [0,0,0], [0,0,0]]
+    def __init__(self, width, height):
+        self.width = width
+        self.height = height
+        self.map = []
         self.roads = []
         self.cars = []

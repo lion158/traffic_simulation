@@ -7,11 +7,11 @@ from traffic_simulation.vector_2d import Vector_2d
 
 
 class Car:
-    def __init__(self, position: Vector_2d, direction: MoveDirection, map: Map, road: Road):
+    def __init__(self, position: Vector_2d, map: Map, road: Road):
         self.position = position
-        self.direction = direction
         self.road = road
         self.map = map
+        self.direction = self.road.direction
         self.v = 0
         self.__ACCELERATION = 1
         self.__PROPABILITY = 0.2
@@ -29,11 +29,11 @@ class Car:
             pass  # car can't drive faster ;)
 
     def deacceleration(self):
-        car_before = self.road.car_before(self)
-        distance = self.road.distance(self, car_before)
-
-        if self.v > distance:
-            self.update_v(distance)
+        if len(self.road.cars) > 1:
+            car_before = self.road.car_before(self)
+            distance = self.road.distance(self, car_before)
+            if self.v > distance:
+                self.update_v(distance)
         else:
             pass  # deceleration is not necessary
 
@@ -46,12 +46,12 @@ class Car:
     def move(self):
         self.update_acceleration()
         self.deacceleration()
-        self.random_events()
+        # self.random_events()
 
         # if road direction N
         if self.direction == MoveDirection.N:
             new_position = Vector_2d(self.position.x, self.position.y + self.v)
-            if new_position <= self.road.lenght:  # to zależy jak będzie lenght (ew + - 1)
+            if new_position.y <= self.road.lenght:  # to zależy jak będzie lenght (ew + - 1)
                 pass  # valid position
             else:
                 new_position.y -= self.road.lenght  # to zależy jak będzie lenght (ew + - 1)
@@ -65,25 +65,44 @@ class Car:
                 new_position.y += self.road.lenght  # to zależy jak będzie lenght (ew + - 1)
 
         # if road direction W
-        elif self.direction == MoveDirection.S:
+        elif self.direction == MoveDirection.W:
             new_position = Vector_2d(self.position.x - self.v, self.position.y)
             if new_position.x >= 0:
                 pass  # valid position
             else:
                 new_position.x += self.road.lenght  # to zależy jak będzie lenght (ew + - 1)
 
-        # if road direction S
-        elif self.direction == MoveDirection.S:
+        # if road direction E
+        elif self.direction == MoveDirection.E:
             new_position = Vector_2d(self.position.x + self.v, self.position.y)
-            if new_position <= self.road.lenght:  # to zależy jak będzie lenght (ew + - 1)
+            if new_position.x <= self.road.lenght:  # to zależy jak będzie lenght (ew + - 1)
                 pass  # valid position
             else:
-                new_position.y -= self.road.lenght  # to zależy jak będzie lenght (ew + - 1)
+                new_position.x -= self.road.lenght  # to zależy jak będzie lenght (ew + - 1)
 
         self.change_position(new_position)
+        print(f"NEW POSITION: {new_position}")
 
     def get_position(self):
         return self.position
 
     def get_direction(self):
         return self.direction
+
+
+map = Map(10, 10)
+road = Road(MoveDirection.S, (0,10), (0, 0), 7, map)
+car = Car(Vector_2d(0,10), map, road)
+car2 = Car(Vector_2d(0,5), map, road)
+road.add_car(car)
+road.add_car(car2)
+
+road.move_cars()
+road.move_cars()
+road.move_cars()
+road.move_cars()
+road.move_cars()
+road.move_cars()
+road.move_cars()
+road.move_cars()
+road.move_cars()
