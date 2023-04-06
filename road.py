@@ -1,12 +1,12 @@
 from scipy.spatial import distance as d
 from traffic_simulation.direction import MoveDirection
 class Road:
-    def __init__(self, direction, start, end, v_max, map):
+    def __init__(self, direction, start, end, v_max):
         self.start = start
         self.end = end
         self.direction = direction
         self.__v_max = v_max
-        self.lenght = 10
+        self.lenght = 200 ###
         self.cars = []
 
     def get_v_max(self):
