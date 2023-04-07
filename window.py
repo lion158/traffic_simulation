@@ -16,7 +16,7 @@ class Window:
         self.GRID_HEIGHT = 50 ##WINDOW_HEIGHT // GRID_SIZE
 
         # Ustawienia obiektów
-        self.OBJECT_SIZE = 10
+        self.OBJECT_SIZE = 5
 
         # Inicjalizacja Pygame
         pygame.init()
@@ -55,10 +55,9 @@ class Window:
                 rect = pygame.Rect(car.position.x , car.position.y , self.OBJECT_SIZE, self.OBJECT_SIZE)
                 pygame.draw.rect(self.screen, (255, 0, 0), rect)
 
-
-
             # Aktualizacja ekranu
             pygame.display.update()
             self.clock.tick(self.FPS)
 
             self.simulation.update()
+

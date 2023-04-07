@@ -29,13 +29,28 @@ class Car:
             pass  # car can't drive faster ;)
 
     def deacceleration(self):
-        if len(self.road.cars) > 1:
-            car_before = self.road.car_before(self)
-            distance = self.road.distance(self, car_before)
-            if self.v > distance:
-                self.update_v(distance)
+        # if len(self.road.cars) > 1:
+        next_light = self.road.next_lights(self)
+        next_light_distance = self.road.distance(self, next_light)
+        # print(f"NEXT_LIGHT_DISTANCE: {next_light_distance}")
+        next_car_distance = self.road.distance(self, self.road.car_before(self))
+        # print(f"NEXT_CAR_DISTANCE: {next_car_distance}")
+        distance = min(next_car_distance,next_light_distance)
+        print(f"DISTANCE: {distance}, pręskość: {self.v}, light: {next_light.green}")
+        if not next_light.green and self.v > distance:
+            self.update_v(distance)
+            print("CZERWONE!")
         else:
-            pass  # deceleration is not necessary
+            self.update_v(min(self.v, next_car_distance))
+                # deceleration is not necessary
+
+        # if len(self.road.cars) > 1:
+        #     car_before = self.road.car_before(self)
+        #     distance = self.road.distance(self, car_before)
+        #     if self.v > distance:
+        #         self.update_v(distance)
+        # else:
+        #     pass  # deceleration is not necessary
 
     def random_events(self):
         if self.v > 0 and random.random() < self.__PROPABILITY:
@@ -81,7 +96,7 @@ class Car:
                 new_position.x -= self.road.lenght  # to zależy jak będzie lenght (ew + - 1)
 
         self.change_position(new_position)
-        print(f"NEW POSITION: {new_position}")
+        # print(f"NEW POSITION: {new_position}")
 
     def get_position(self):
         return self.position

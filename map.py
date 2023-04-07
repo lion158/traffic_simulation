@@ -1,5 +1,6 @@
 # from traffic_simulation.car import Car
 # from traffic_simulation.road import Road
+from traffic_simulation.lights import Lights
 
 
 class Map:
@@ -9,6 +10,7 @@ class Map:
         self.map = []
         self.roads = []
         self.cars = []
+        self.lights = []
 
     def add_road(self, road):
         self.roads.append(road)
@@ -26,3 +28,6 @@ class Map:
     def move_cars(self):
         for road in self.roads:
             road.move_cars()
+
+    def add_lights(self, position):
+        self.lights.append(Lights(position))

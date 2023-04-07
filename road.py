@@ -1,5 +1,9 @@
 from scipy.spatial import distance as d
 from traffic_simulation.direction import MoveDirection
+from traffic_simulation.lights import Lights
+from traffic_simulation.vector_2d import Vector_2d
+
+
 class Road:
     def __init__(self, direction, start, end, v_max):
         self.start = start
@@ -8,6 +12,7 @@ class Road:
         self.__v_max = v_max
         self.lenght = 200 ###
         self.cars = []
+        self.lights = []
 
     def get_v_max(self):
         return self.__v_max
@@ -45,3 +50,19 @@ class Road:
         else:
             pass  # no cars on road
 
+
+    def add_light(self, lights):
+        self.lights.append(lights)
+
+    def next_lights(self, car):
+        distance = self.distance(car, self.lights[0])
+        next_light = self.lights[0]
+        for light in self.lights:
+           if self.distance(car, light) < distance:  #możliwe że zostanie światło przed (bo będzie bliżej w odległośi)
+               next_light = light
+
+        return next_light
+
+    def change_lights(self):
+        for l in self.lights:
+            l.change_lights()
