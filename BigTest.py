@@ -113,8 +113,10 @@ class Simulation:
 
                 if not next_lights_bool and v > min(next_car, next_lights):  # if red and v > distance to next object
                     v = min(next_car, next_lights)
+                    matrix_v_car[i] = v
                 else:
                     v = min(v, next_car)
+                    matrix_v_car[i] = v
             else:
                 pass  # velocity can't be negative or car is driving another direction
 
@@ -283,9 +285,11 @@ class Simulation:
         self.map.car_map = new_car_map
         return new_map
 
-#TODO nie chamują
+
 map = Map(15)
 map.add_car(11,0, MoveDirection.E)
+map.add_car(11,1, MoveDirection.E)
+map.add_car(11,2, MoveDirection.E)
 simulation = Simulation(6, map)
 matrix = copy.deepcopy(map.car_v_map)
 new_map = simulation.move(matrix)
