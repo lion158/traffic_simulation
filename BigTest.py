@@ -106,7 +106,7 @@ class Simulation:
         # new_matrix = np.full((self.map.N, self.map.N), None)  # integer values
 
         for i, v in enumerate(matrix_v_car):  # i=index, v=value
-            if v >= 0 and matrix_car[i].direction != direction:
+            if v >= 0 and matrix_car[i].direction == direction:  # tu zmieniłem na == z !=
                 next_car = self.next_car_distance(matrix_v_car, i)
                 next_lights = self.next_lights_distance(matrix_lights, i)
                 next_lights_bool = self.next_lights_bool(matrix_lights, i, next_lights)  # True = green, False = red
@@ -123,7 +123,7 @@ class Simulation:
 
     def random_events(self, matrix_car, matrix_v_car, direction):
         for i, v in enumerate(matrix_v_car):
-            if v > 0 and random.random() < self.__PROPABILITY and matrix_car[i].direction != direction:
+            if v > 0 and random.random() < self.__PROPABILITY and matrix_car[i].direction == direction: # tu zmieniłem na ==
                 v -= 1
             else:
                 pass  # everything ok
@@ -168,7 +168,8 @@ class Simulation:
             #############################################
             new_car_object_matrix = new_car_object_matrix[::-1]
             for i in range(len(new_car_map)):
-                new_car_map[i][n] = new_car_object_matrix[i]
+                if new_car_map[i][n] == None:  # dodałęm tą linie
+                    new_car_map[i][n] = new_car_object_matrix[i]
 
             new_map[:, n] = new_car_matrix
 
@@ -188,11 +189,20 @@ class Simulation:
             # new_car_matrix = np.full((self.map.N), -99)  # should be integer
             new_car_matrix = new_map[:, s]
 
+            ###########################################
+            new_car_object_matrix = [None] * self.N
+
             for i, v in enumerate(car_v_matrix):
                 if v >= 0 and car_matrix[i].direction == MoveDirection.S:
                     new_car_matrix[(i + v) % len(car_v_matrix)] = v
+                    #########################################
+                    car = car_matrix[i]
+                    new_car_object_matrix[(i + v) % len(car_v_matrix)] = car
 
-            new_car_matrix = new_car_matrix[::-1]
+            #############################################
+            for i in range(len(new_car_map)):
+                if new_car_map[i][s] == None:  # dodałęm tą linie
+                    new_car_map[i][s] = new_car_object_matrix[i]
 
             new_map[:, s] = new_car_matrix
 
@@ -210,11 +220,22 @@ class Simulation:
             # new_car_matrix = np.full((self.map.N), -99)  # should be integer
             new_car_matrix = new_map[e]
 
+            ###########################################
+            new_car_object_matrix = [None] * self.N
+
             for i, v in enumerate(car_v_matrix):
                 if v >= 0 and car_matrix[i].direction == MoveDirection.E:
                     new_car_matrix[(i + v) % len(car_matrix)] = v
+                    #########################################
+                    car = car_matrix[i]
+                    new_car_object_matrix[(i + v) % len(car_v_matrix)] = car
 
             new_car_matrix = new_car_matrix #tu usunąłem reverse
+            #############################################
+            new_car_object_matrix = new_car_object_matrix
+            for i in range(len(new_car_map)):
+                if new_car_map[e][i] == None:  # dodałęm tą linie
+                    new_car_map[e][i] = new_car_object_matrix[i] #zamieniłęm e i
 
             new_map[e] = new_car_matrix
 
@@ -238,25 +259,33 @@ class Simulation:
             new_car_matrix = new_map[w]
             new_car_matrix = new_car_matrix[::-1] #tą linie dodałem
 
+            ###########################################
+            new_car_object_matrix = [None] * self.N
+
             for i, v in enumerate(car_v_matrix):
                 if v >= 0 and car_matrix[i].direction == MoveDirection.W:
                     new_car_matrix[(i + v) % len(car_matrix)] = v
-                    # opcja z autami aktualizowanymi od razu
+                    #########################################
+                    car = car_matrix[i]
+                    new_car_object_matrix[(i + v) % len(car_v_matrix)] = car
 
 
             new_car_matrix = new_car_matrix[::-1]
+            #############################################
+            new_car_object_matrix = new_car_object_matrix[::-1]
+            for i in range(len(new_car_map)):
+                if new_car_map[w][i] == None: #dodałęm tą linie
+                    new_car_map[w][i] = new_car_object_matrix[i] #zamieniełem w i
+
             new_map[w] = new_car_matrix
 
 
         self.map.car_map = new_car_map
         return new_map
 
-#TODO dodać aktializacje aut w innych drogach (na razie tylko w n)
-
-
-
+#TODO nie chamują
 map = Map(15)
-map.add_car(14,3, MoveDirection.N)
+map.add_car(11,0, MoveDirection.E)
 simulation = Simulation(6, map)
 matrix = copy.deepcopy(map.car_v_map)
 new_map = simulation.move(matrix)
@@ -270,55 +299,63 @@ print(map.car_map)
 # print(map.car_v_map)
 # print('')
 # print('')
+
+
 matrix = copy.deepcopy(map.car_v_map)
-print(matrix)
 # print(map.car_map)
 new_map = simulation.move(matrix)
 map.car_v_map_update(new_map)
 print(new_map)
-
+print("")
+print("")
 
 matrix = copy.deepcopy(map.car_v_map)
-print(matrix)
 # print(map.car_map)
 new_map = simulation.move(matrix)
 map.car_v_map_update(new_map)
 print(new_map)
+print("")
+print("")
 
 matrix = copy.deepcopy(map.car_v_map)
-print(matrix)
 # print(map.car_map)
 new_map = simulation.move(matrix)
 map.car_v_map_update(new_map)
 print(new_map)
+print("")
+print("")
 
 matrix = copy.deepcopy(map.car_v_map)
-print(matrix)
 # print(map.car_map)
 new_map = simulation.move(matrix)
 map.car_v_map_update(new_map)
 print(new_map)
+print("")
+print("")
 
 matrix = copy.deepcopy(map.car_v_map)
-print(matrix)
 # print(map.car_map)
 new_map = simulation.move(matrix)
 map.car_v_map_update(new_map)
 print(new_map)
+print("")
+print("")
 
 matrix = copy.deepcopy(map.car_v_map)
-print(matrix)
 # print(map.car_map)
 new_map = simulation.move(matrix)
 map.car_v_map_update(new_map)
 print(new_map)
+print("")
+print("")
 
 matrix = copy.deepcopy(map.car_v_map)
-print(matrix)
 # print(map.car_map)
 new_map = simulation.move(matrix)
 map.car_v_map_update(new_map)
 print(new_map)
+print("")
+print("")
 
 
 # test = Simulation(5)

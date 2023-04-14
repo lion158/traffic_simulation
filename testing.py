@@ -17,7 +17,7 @@
 # positive_index = (positive_mask[0 + 1:] == True).argmax()
 #
 #
-# # Obliczamy ilość wartości ujemnych między wartościami dodatnimi
+ # # Obliczamy ilość wartości ujemnych między wartościami dodatnimi
 # count = np.count_nonzero(negative_mask[positive_index:0:-1])
 # print(count)
 #
