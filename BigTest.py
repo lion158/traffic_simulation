@@ -1,6 +1,9 @@
 import random
 import numpy as np
 import copy
+import sys
+
+import pygame
 
 from traffic_simulation.direction import MoveDirection
 
@@ -22,8 +25,6 @@ class Map:
         self.road()
         self.lights()
 
-    # def print_map(self):
-    #     print(self.map)
 
     def temp_map(self):
         x_list = self.w + self.e
@@ -34,8 +35,10 @@ class Map:
         return temp
 
     def add_car(self, x, y, direction):
-        self.car_map[x][y] = Car(direction, (x,y))
+        car = Car(direction, (x,y))
+        self.car_map[x][y] = car
         self.car_v_map[x][y] = 0
+        return car
 
     def update_map(self, temp):
         self.car_map = temp.map
@@ -54,20 +57,36 @@ class Map:
         for pos in positions_s + positions_n + positions_w + positions_e:
             self.lights_map[pos[0], pos[1]] = 1
 
+        # self.lights_map[11, 99] = 0
+
     def car_v_map_update(self, new_v_car_map):
         self.car_v_map = new_v_car_map
+
 
 class Car:
     def __init__(self, direction, position):
         self.direction = direction
-        self.position = position
+        self.position = Vector(position[1] * 7, position[0] * 7)  # grid size 5
+        self.velocity = Vector(0, 0)
+        self.acceleration = Vector(0, 0)
+        self.old_v = 0 ## helping variable to move function in simulation
+
+
+
+class Vector:
+    def __init__(self, x=0, y=0):
+        self.x = x
+        self.y = y
+
 
 class Simulation:
-    def __init__(self, v_max, map):
+    def __init__(self, v_max, map, cars, time):
         self.__PROPABILITY = 0.2
         self.v_max = v_max
         self.map = map
         self.N = map.N
+        self.time = time
+        self.cars = cars
 
     def acceleration(self, matrix):
         condition = np.logical_and(matrix >= 0, matrix < self.v_max)
@@ -111,7 +130,7 @@ class Simulation:
                 next_lights = self.next_lights_distance(matrix_lights, i)
                 next_lights_bool = self.next_lights_bool(matrix_lights, i, next_lights)  # True = green, False = red
 
-                if not next_lights_bool and v > min(next_car, next_lights):  # if red and v > distance to next object
+                if (next_lights_bool == 0) and v > min(next_car, next_lights):  # if red and v > distance to next object
                     v = min(next_car, next_lights)
                     matrix_v_car[i] = v
                 else:
@@ -127,10 +146,12 @@ class Simulation:
         for i, v in enumerate(matrix_v_car):
             if v > 0 and random.random() < self.__PROPABILITY and matrix_car[i].direction == direction: # tu zmieniłem na ==
                 v -= 1
+                matrix_v_car[i] = v
             else:
                 pass  # everything ok
 
     def move(self, matrix):
+
         new_map = self.map.temp_map()
         new_car_map = [[None] * self.N for _ in range(self.N)]
 
@@ -281,85 +302,263 @@ class Simulation:
 
             new_map[w] = new_car_matrix
 
+        #update cars objects velocity:
+        for i in range(self.N):
+            for j in range(self.N):
+                object = new_car_map[j][i]
+                if object != None:
+                    direction = object.direction
+                    a = 2 * (new_map[j][i] - object.old_v * self.time)/self.time ** 2 #2(vk - vp*t)/t^2
+                    a = a * 7  ## GRID size
+
+                    value = (new_map[j][i] * 7) / self.time
+
+
+
+                    if direction == MoveDirection.N:
+                        object.velocity = Vector(0, value)
+                    if direction == MoveDirection.S:
+                        object.velocity = Vector(0, -value)
+                    if direction == MoveDirection.W:
+                        object.velocity = Vector(-value, 0)
+                    if direction == MoveDirection.E:
+                        object.velocity = Vector(value, 0)
+
+                    object.old_v = new_map[j][i]
+
 
         self.map.car_map = new_car_map
         return new_map
 
 
-map = Map(15)
-map.add_car(11,0, MoveDirection.E)
-map.add_car(11,1, MoveDirection.E)
-map.add_car(11,2, MoveDirection.E)
-simulation = Simulation(6, map)
-matrix = copy.deepcopy(map.car_v_map)
-new_map = simulation.move(matrix)
-map.car_v_map_update(new_map)
-print(new_map)
-print("")
-print("")
-print(map.car_map)
-# print('')
-# print('')
-# print(map.car_v_map)
-# print('')
-# print('')
+class Engine:
+    def __init__(self,simulation,map):
+        self.simulation = simulation
+        self.map = map
+        self.ticks = 0
+
+    def loop(self):
+        if self.ticks % 8 == 0:
+            if self.map.lights_map[11,9] == 1:
+                self.map.lights_map[11,9] = 0
+                self.map.lights_map[11,9] = 0
+            else:
+                self.map.lights_map[11, 9] = 1
+        matrix = copy.deepcopy(self.map.car_v_map)
+        new_map = self.simulation.move(matrix)
+        self.map.car_v_map_update(new_map)
+        self.ticks += 1
+
+    def update(self, delta_time, car):
+        car.acceleration = Vector(0, 0) ### to dodałem
+        car.position = Vector(car.position.x + car.velocity.x * delta_time
+                               + 0.5 * car.acceleration.x * pow(delta_time, 2),
+                               car.position.y + car.velocity.y * delta_time
+                               + 0.5 * car.acceleration.y * pow(delta_time, 2))
+        car.velocity = Vector(car.velocity.x + car.acceleration.x * delta_time,
+                               car.velocity.y + car.acceleration.y * delta_time)
+        # self.rotate_front()
+        if car.position.x >= 700:
+            car.position.x = 0
+        if car.position.y >= 700:
+            car.position.y = 0
+        if car.position.x < 0:
+            car.position.x = 699
+        if car.position.y < 0:
+            car.position.y = 699
 
 
-matrix = copy.deepcopy(map.car_v_map)
+class Window:
+    def __init__(self, engine):
+        self.engine = engine
+        # Ustawienia okna
+        self.WINDOW_WIDTH = 700
+        self.WINDOW_HEIGHT = 700
+        self.FPS = 60
+        self.tick = 0
+
+        # Ustawienia mapy
+        self.GRID_SIZE = 7
+        self.GRID_WIDTH = 100 ##WINDOW_WIDTH // GRID_SIZE
+        self.GRID_HEIGHT = 100 ##WINDOW_HEIGHT // GRID_SIZE
+
+        # Ustawienia obiektów
+        self.OBJECT_SIZE = 5
+
+        # Inicjalizacja Pygame
+        pygame.init()
+        self.screen = pygame.display.set_mode((self.WINDOW_WIDTH, self.WINDOW_HEIGHT))
+        self.clock = pygame.time.Clock()
+
+    # Funkcja rysująca kratki na mapie
+    def draw_grid(self):
+        for x in range(0, self.WINDOW_WIDTH, self.GRID_SIZE):
+            pygame.draw.line(self.screen, (255, 255, 255), (x, 0), (x, self.WINDOW_HEIGHT))
+        for y in range(0, self.WINDOW_HEIGHT, self.GRID_SIZE):
+            pygame.draw.line(self.screen, (255, 255, 255), (0, y), (self.WINDOW_WIDTH, y))
+
+    def draw_cars(self, delta_time):
+        cars = self.engine.simulation.cars
+
+        for car in cars:
+            self.engine.update(delta_time, car)
+            rect = pygame.Rect(car.position.x, car.position.y, self.OBJECT_SIZE, self.OBJECT_SIZE)  ##*10
+            pygame.draw.rect(self.screen, (255, 0, 0), rect)
+
+
+
+    def loop(self):
+        # Główna pętla gry
+        clock = pygame.time.Clock()
+        while True:
+            # Obsługa zdarzeń
+            for event in pygame.event.get():
+                if event.type == pygame.QUIT:
+                    pygame.quit()
+                    sys.exit()
+
+            delta_time = clock.tick(self.FPS) / 1000.0
+
+            # Wypełnienie tła
+            self.screen.fill((0, 0, 0))
+
+            # Rysowanie kratki na mapie
+            self.draw_grid()
+
+
+            # Rysowanie obiektów
+            # object_positions = [(1, 0), (0, 15), (50, 0)] # Przykładowe pozycje obiektów
+            # for pos in object_positions:
+            #     rect = pygame.Rect(pos[0], pos[1], self.OBJECT_SIZE, self.OBJECT_SIZE)
+            #     pygame.draw.rect(self.screen, (255, 0, 0), rect)
+
+
+            for i in range(self.engine.map.N):
+                for j in range(self.engine.map.N):
+                    if self.engine.map.road_map[i][j] == -99:
+                        rect = pygame.Rect(j*7, i*7, 7, 7) ##*10
+                        pygame.draw.rect(self.screen, (200, 200, 200), rect)
+                    if self.engine.map.lights_map[i][j] == 1:
+                        rect = pygame.Rect(j * 7, i * 7, 7, 7)  ##*10
+                        pygame.draw.rect(self.screen, (0, 255, 0), rect)
+                    if self.engine.map.lights_map[i][j] == 0:
+                        rect = pygame.Rect(j * 7, i * 7, 7, 7)  ##*10
+                        pygame.draw.rect(self.screen, (255, 0, 0), rect)
+            self.draw_cars(delta_time)
+
+            # Aktualizacja ekranu
+            pygame.display.update()
+            self.clock.tick(self.FPS)
+
+
+            if self.tick % 60 == 0:
+                self.engine.loop()
+
+            self.tick += 1
+
+
+
+
+
+cars = []
+map = Map(100)
+car = map.add_car(11,0, MoveDirection.E)
+cars.append(car)
+car = map.add_car(11,1, MoveDirection.E)
+cars.append(car)
+car = map.add_car(11,2, MoveDirection.E)
+cars.append(car)
+# car = map.add_car(10,2, MoveDirection.W)
+# cars.append(car)
+# car = map.add_car(10,7, MoveDirection.W)
+# cars.append(car)
+# car = map.add_car(14,3, MoveDirection.N)
+# cars.append(car)
+
+
+simulation = Simulation(6, map, cars, 1)
+engine = Engine(simulation, map)
+window = Window(engine)
+window.loop()
+
+
+# simulation = Simulation(6, map, cars, 1)
+# engine = Engine(simulation, map)
+# engine.loop()
+# engine.loop()
+# engine.loop()
+# engine.loop()
+# engine.loop()
+
+# matrix = copy.deepcopy(map.car_v_map)
+# new_map = simulation.move(matrix)
+# map.car_v_map_update(new_map)
+# print(new_map)
+# print("")
+# print("")
 # print(map.car_map)
-new_map = simulation.move(matrix)
-map.car_v_map_update(new_map)
-print(new_map)
-print("")
-print("")
-
-matrix = copy.deepcopy(map.car_v_map)
-# print(map.car_map)
-new_map = simulation.move(matrix)
-map.car_v_map_update(new_map)
-print(new_map)
-print("")
-print("")
-
-matrix = copy.deepcopy(map.car_v_map)
-# print(map.car_map)
-new_map = simulation.move(matrix)
-map.car_v_map_update(new_map)
-print(new_map)
-print("")
-print("")
-
-matrix = copy.deepcopy(map.car_v_map)
-# print(map.car_map)
-new_map = simulation.move(matrix)
-map.car_v_map_update(new_map)
-print(new_map)
-print("")
-print("")
-
-matrix = copy.deepcopy(map.car_v_map)
-# print(map.car_map)
-new_map = simulation.move(matrix)
-map.car_v_map_update(new_map)
-print(new_map)
-print("")
-print("")
-
-matrix = copy.deepcopy(map.car_v_map)
-# print(map.car_map)
-new_map = simulation.move(matrix)
-map.car_v_map_update(new_map)
-print(new_map)
-print("")
-print("")
-
-matrix = copy.deepcopy(map.car_v_map)
-# print(map.car_map)
-new_map = simulation.move(matrix)
-map.car_v_map_update(new_map)
-print(new_map)
-print("")
-print("")
+# # print('')
+# # print('')
+# # print(map.car_v_map)
+# # print('')
+# # print('')
+#
+#
+# matrix = copy.deepcopy(map.car_v_map)
+# # print(map.car_map)
+# new_map = simulation.move(matrix)
+# map.car_v_map_update(new_map)
+# print(new_map)
+# print("")
+# print("")
+#
+# matrix = copy.deepcopy(map.car_v_map)
+# # print(map.car_map)
+# new_map = simulation.move(matrix)
+# map.car_v_map_update(new_map)
+# print(new_map)
+# print("")
+# print("")
+#
+# matrix = copy.deepcopy(map.car_v_map)
+# # print(map.car_map)
+# new_map = simulation.move(matrix)
+# map.car_v_map_update(new_map)
+# print(new_map)
+# print("")
+# print("")
+#
+# matrix = copy.deepcopy(map.car_v_map)
+# # print(map.car_map)
+# new_map = simulation.move(matrix)
+# map.car_v_map_update(new_map)
+# print(new_map)
+# print("")
+# print("")
+#
+# matrix = copy.deepcopy(map.car_v_map)
+# # print(map.car_map)
+# new_map = simulation.move(matrix)
+# map.car_v_map_update(new_map)
+# print(new_map)
+# print("")
+# print("")
+#
+# matrix = copy.deepcopy(map.car_v_map)
+# # print(map.car_map)
+# new_map = simulation.move(matrix)
+# map.car_v_map_update(new_map)
+# print(new_map)
+# print("")
+# print("")
+#
+# matrix = copy.deepcopy(map.car_v_map)
+# # print(map.car_map)
+# new_map = simulation.move(matrix)
+# map.car_v_map_update(new_map)
+# print(new_map)
+# print("")
+# print("")
 
 
 # test = Simulation(5)
@@ -411,5 +610,4 @@ print("")
 #
 #     # Acceleration, deceleration, randomization, and movement rules go here
 #
-#     # Print the state of the road
-#     print(''.join('.' if x==0 else str(int(x)) for x in road))
+
