@@ -105,6 +105,7 @@ class Car:
         return self.direction
 
 
+
 # map = Map(10, 10)
 # road = Road(MoveDirection.S, (0,10), (0, 0), 7)
 # car = Car(Vector_2d(0,10), map, road)
