@@ -18,6 +18,14 @@ class Map:
         self.road_map = np.full((self.N, self.N), self.nothing_cell)  # must be int value (to proper acceleration)
         self.lights_map = np.full((self.N, self.N), self.nothing_cell)  # must be int value (to proper acceleration)
         self.intersections_map = np.full((self.N, self.N), self.nothing_cell)
+        self.left_map_n = np.full((self.N, self.N), self.nothing_cell)
+        self.right_map_n = np.full((self.N, self.N), self.nothing_cell)
+        self.left_map_s = np.full((self.N, self.N), self.nothing_cell)
+        self.right_map_s = np.full((self.N, self.N), self.nothing_cell)
+        self.left_map_w = np.full((self.N, self.N), self.nothing_cell)
+        self.right_map_w = np.full((self.N, self.N), self.nothing_cell)
+        self.left_map_e = np.full((self.N, self.N), self.nothing_cell)
+        self.right_map_e = np.full((self.N, self.N), self.nothing_cell)
         self.n = [3, 11]
         self.s = [2, 10]
         self.w = [2, 10]  # zamienielem w i e
@@ -30,6 +38,7 @@ class Map:
         self.road()
         self.lights()
         self.intersections()
+        self.turns()
 
     def temp_map(self):
         x_list = self.w + self.e
@@ -53,6 +62,39 @@ class Map:
         y_list = self.n + self.s
         self.road_map[x_list, :] = self.road_cell
         self.road_map[:, y_list] = self.road_cell
+
+    def turns(self):
+        # for n directions
+        left_n = self.w
+        left_n = [x - 1 for x in left_n]
+        right_n = self.e
+        right_n = [x - 1 for x in right_n]
+        self.left_map_n[left_n, :] = 0
+        self.right_map_n[right_n, :] = 0
+
+        # for s directions
+        left_s = self.e
+        left_s = [x + 1 for x in left_s]
+        right_s = self.w
+        right_s = [x + 1 for x in right_s]
+        self.left_map_s[left_s, :] = 0
+        self.right_map_s[right_s, :] = 0
+
+        # for e directions
+        left_e = self.n
+        left_e = [x + 1 for x in left_e]
+        right_e = self.s
+        right_e = [x + 1 for x in right_e]
+        self.left_map_e[:, left_e] = 0
+        self.right_map_e[:, right_e] = 0
+
+        # for w directions
+        left_w = self.s
+        left_w = [x - 1 for x in left_w]
+        right_w = self.n
+        right_w = [x - 1 for x in right_w]
+        self.left_map_w[:, left_w] = 0
+        self.right_map_w[:, right_w] = 0
 
     def lights(self):
         # lights_positions_n = [(4,3), (4,11), (12,3), (12,11)]
@@ -80,9 +122,13 @@ class Car:
     def __init__(self, direction, position):
         self.direction = direction
         self.position = Vector(position[1] * 7, position[0] * 7)  # grid size 5
+        self.position_normal = Vector(position[1], position[0])
         self.velocity = Vector(0, 0)
         self.acceleration = Vector(0, 0)
         self.old_v = 0  ## helping variable to move function in simulation
+        self.will_turn = True
+        self.will_turn_right = True
+        self.will_turn_left = False
 
 
 class Vector:
@@ -125,37 +171,41 @@ class Simulation:
         else:
             return distance
 
-        ################ sprawdź czy nie zmienia oryginalnej macierzy
-
     def next_lights_distance(self, matrix, index):
         return self.next_car_distance(matrix, index)
 
     def next_intersection_distance(self, matrix, index):
         return self.next_car_distance(matrix, index)
 
+    def next_right_distnace(self, matrix, index):
+        return self.next_car_distance(matrix, index)
+
+    def next_left_distance(self, matrix, index):
+        return self.next_car_distance(matrix, index)
+
     def next_lights_bool(self, matrix, index, distance):  # index of car, distance to lights
         return matrix[(index + distance + 1) % len(matrix)]  # dodałem modulo
 
-    def deacceleration(self, matrix_car, matrix_v_car, matrix_lights, matrix_intersections, direction):
+    def deacceleration(self, matrix_car, matrix_v_car, matrix_lights, matrix_intersections, matrix_left_turn, matrix_right_turn, direction):
         # new_matrix = np.full((self.map.N, self.map.N), None)  # integer values
         def sprawdzam():
             if matrix_car[i].direction == MoveDirection.N:
-                position_x = int(matrix_car[i].position.x / 7)  ######## grid size
-                position_y = int(matrix_car[i].position.y / 7)  ######## grid size
+                position_x = int(matrix_car[i].position_normal.x)  ######## grid size
+                position_y = int(matrix_car[i].position_normal.y)  ######## grid size
                 l = []
-                for z in range(6): #na sztywno (max prędkość)
+                for z in range(5): #na sztywno (max prędkość)
                     # print("SPRAWDZAM")
                     # print(self.map.car_v_map[(position_y + z + 1) % self.N][position_x])
                     # print(self.map.car_map[(position_y + z + 1) % self.N][position_x].direction)
-                    if (self.map.car_v_map[(position_y - z - 1) % self.N][position_x] >= 0 and \
+                    if (self.map.car_v_map[(position_y - z - 1) % self.N][position_x] >= 0 and
                         self.map.car_map[(position_y - z - 1) % self.N][position_x].direction == MoveDirection.E) or \
-                            (self.map.car_v_map[(position_y - z - 1) % self.N][position_x] >= 0 and \
+                            (self.map.car_v_map[(position_y - z - 1) % self.N][position_x] >= 0 and
                              self.map.car_map[(position_y - z - 1) % self.N][
                                  position_x].direction == MoveDirection.W) or \
-                            (self.map.car_v_map[(position_y - z - 1) % self.N][position_x - 1] >= 0 and \
+                            (self.map.car_v_map[(position_y - z - 1) % self.N][position_x - 1] >= 0 and
                              self.map.car_map[(position_y - z - 1) % self.N][
                                  position_x - 1].direction == MoveDirection.E) or \
-                            (self.map.car_v_map[(position_y - z - 1) % self.N][position_x - 1] >= 0 and \
+                            (self.map.car_v_map[(position_y - z - 1) % self.N][position_x - 1] >= 0 and
                              self.map.car_map[(position_y - z - 1) % self.N][
                                  position_x - 1].direction == MoveDirection.W):
                         l.append(True)
@@ -166,22 +216,22 @@ class Simulation:
                 else:
                     return False
             elif matrix_car[i].direction == MoveDirection.S:
-                position_x = int(matrix_car[i].position.x / 7)  ######## grid size
-                position_y = int(matrix_car[i].position.y / 7)  ######## grid size
+                position_x = int(matrix_car[i].position_normal.x)  ######## grid size
+                position_y = int(matrix_car[i].position_normal.y)  ######## grid size
                 l = []
-                for z in range(6): #na sztywno (max prędkość)
+                for z in range(5): #na sztywno (max prędkość)
                     # print("SPRAWDZAM")
                     # print(self.map.car_v_map[(position_y + z + 1) % self.N][position_x])
                     # print(self.map.car_map[(position_y + z + 1) % self.N][position_x].direction)
-                    if (self.map.car_v_map[(position_y + z + 1) % self.N][position_x] >= 0 and \
+                    if (self.map.car_v_map[(position_y + z + 1) % self.N][position_x] >= 0 and
                         self.map.car_map[(position_y + z + 1) % self.N][position_x].direction == MoveDirection.E) or \
-                            (self.map.car_v_map[(position_y + z + 1) % self.N][position_x] >= 0 and \
+                            (self.map.car_v_map[(position_y + z + 1) % self.N][position_x] >= 0 and
                              self.map.car_map[(position_y + z + 1) % self.N][
                                  position_x].direction == MoveDirection.W) or \
-                            (self.map.car_v_map[(position_y + z + 1) % self.N][position_x + 1] >= 0 and \
+                            (self.map.car_v_map[(position_y + z + 1) % self.N][position_x + 1] >= 0 and
                              self.map.car_map[(position_y + z + 1) % self.N][
-                                 position_x - 1].direction == MoveDirection.E) or \
-                            (self.map.car_v_map[(position_y + z + 1) % self.N][position_x + 1] >= 0 and \
+                                 position_x + 1].direction == MoveDirection.E) or \
+                            (self.map.car_v_map[(position_y + z + 1) % self.N][position_x + 1] >= 0 and
                              self.map.car_map[(position_y + z + 1) % self.N][position_x + 1].direction == MoveDirection.W):
                         l.append(True)
                     else:
@@ -191,22 +241,22 @@ class Simulation:
                 else:
                     return False
             elif matrix_car[i].direction == MoveDirection.E:
-                position_x = int(matrix_car[i].position.x / 7)  ######## grid size
-                position_y = int(matrix_car[i].position.y / 7)  ######## grid size
+                position_x = int(matrix_car[i].position_normal.x)  ######## grid size
+                position_y = int(matrix_car[i].position_normal.y)  ######## grid size
                 l = []
-                for z in range(6): #na sztywno (max prędkość)
+                for z in range(5): #na sztywno (max prędkość)
                     # print("SPRAWDZAM")
                     # print(self.map.car_v_map[(position_y + z + 1) % self.N][position_x])
                     # print(self.map.car_map[(position_y + z + 1) % self.N][position_x].direction)
-                    if (self.map.car_v_map[(position_y) % self.N][(position_x + z + 1) % self.N] >= 0 and \
+                    if (self.map.car_v_map[(position_y) % self.N][(position_x + z + 1) % self.N] >= 0 and
                         self.map.car_map[(position_y) % self.N][(position_x + z + 1) % self.N].direction == MoveDirection.N) or \
-                            (self.map.car_v_map[(position_y) % self.N][(position_x + z + 1) % self.N] >= 0 and \
+                            (self.map.car_v_map[(position_y) % self.N][(position_x + z + 1) % self.N] >= 0 and
                              self.map.car_map[(position_y) % self.N][
                              (position_x + z + 1) % self.N].direction == MoveDirection.S) or \
-                            (self.map.car_v_map[(position_y - 1) % self.N][(position_x + z + 1) % self.N] >= 0 and \
+                            (self.map.car_v_map[(position_y - 1) % self.N][(position_x + z + 1) % self.N] >= 0 and
                              self.map.car_map[(position_y - 1) % self.N][
                              (position_x + z + 1) % self.N].direction == MoveDirection.N) or \
-                            (self.map.car_v_map[(position_y - 1) % self.N][(position_x + z + 1) % self.N] >= 0 and \
+                            (self.map.car_v_map[(position_y - 1) % self.N][(position_x + z + 1) % self.N] >= 0 and
                              self.map.car_map[(position_y - 1) % self.N][(position_x + z + 1) % self.N].direction == MoveDirection.S):
                         l.append(True)
                     else:
@@ -216,20 +266,20 @@ class Simulation:
                 else:
                     return False
             elif matrix_car[i].direction == MoveDirection.W:
-                position_x = int(matrix_car[i].position.x / 7)  ######## grid size
-                position_y = int(matrix_car[i].position.y / 7)  ######## grid size
+                position_x = int(matrix_car[i].position_normal.x)  ######## grid size
+                position_y = int(matrix_car[i].position_normal.y)  ######## grid size
                 l = []
-                for z in range(6): #na sztywno (max prędkość)
+                for z in range(5): #na sztywno (max prędkość)
                     # print("SPRAWDZAM")
                     # print(self.map.car_v_map[(position_y + z + 1) % self.N][position_x])
                     # print(self.map.car_map[(position_y + z + 1) % self.N][position_x].direction)
-                    if (self.map.car_v_map[(position_y) % self.N][(position_x - z - 1) % self.N] >= 0 and \
+                    if (self.map.car_v_map[(position_y) % self.N][(position_x - z - 1) % self.N] >= 0 and
                         self.map.car_map[(position_y) % self.N][(position_x - z - 1) % self.N].direction == MoveDirection.N) or \
-                        (self.map.car_v_map[(position_y) % self.N][(position_x - z - 1) % self.N] >= 0 and \
+                        (self.map.car_v_map[(position_y) % self.N][(position_x - z - 1) % self.N] >= 0 and
                          self.map.car_map[(position_y) % self.N][(position_x - z - 1) % self.N].direction == MoveDirection.S) or \
-                        (self.map.car_v_map[(position_y + 1) % self.N][(position_x - z - 1) % self.N] >= 0 and \
+                        (self.map.car_v_map[(position_y + 1) % self.N][(position_x - z - 1) % self.N] >= 0 and
                          self.map.car_map[(position_y + 1) % self.N][(position_x - z - 1) % self.N].direction == MoveDirection.N) or \
-                        (self.map.car_v_map[(position_y + 1) % self.N][(position_x - z - 1) % self.N] >= 0 and \
+                        (self.map.car_v_map[(position_y + 1) % self.N][(position_x - z - 1) % self.N] >= 0 and
                          self.map.car_map[(position_y + 1) % self.N][(position_x - z - 1) % self.N].direction == MoveDirection.S):
                         l.append(True)
                     else:
@@ -245,73 +295,35 @@ class Simulation:
                 next_lights = self.next_lights_distance(matrix_lights, i)
                 next_intersection = self.next_intersection_distance(matrix_intersections, i)
                 next_lights_bool = self.next_lights_bool(matrix_lights, i, next_lights)  # True = green, False = red
+                next_right = self.next_right_distnace(matrix_right_turn, i)
+                next_left = self.next_left_distance(matrix_left_turn, i)
 
                 if (next_lights_bool == 0) and v > min(next_car, next_lights):  # if red and v > distance to next object
                     v = min(next_car, next_lights)
                     matrix_v_car[i] = v
-                elif (next_lights_bool == 1) and v > min(next_car, next_lights) and sprawdzam():
-                    v = min(next_car, next_lights, v)
+                if (next_lights_bool == 1) and sprawdzam() and matrix_car[i].will_turn == False: #usunęłem and v > min(next_car, next_lights) (sprawdzam to jest zajęte)
+                    v = min(next_car, v, next_lights)
                     matrix_v_car[i] = v
-                # dodaje
-                # if matrix_car[i].direction == MoveDirection.N:
-                #     position_x = int(matrix_car[i].position.x / 7)  ######## grid size
-                #     position_y = int(matrix_car[i].position.y / 7)  ######## grid size
-                #     # for z in range(1, v):
-                #     #     if self.map.car_v_map[position_x][(position_y + z) % self.N] >= 0 and \
-                #     #             self.map.car_map[position_x][(position_y + z) % self.N].direction == MoveDirection.E or \
-                #     #             self.map.car_v_map[position_x][(position_y + z) % self.N] >= 0 and \
-                #     #             self.map.car_map[position_x][(position_y + z) % self.N].direction == MoveDirection.W or \
-                #     #             self.map.car_v_map[position_x - 1][(position_y + z) % self.N] >= 0 and \
-                #     #             self.map.car_map[position_x - 1][(position_y + z) % self.N].direction == MoveDirection.E or \
-                #     #             self.map.car_v_map[position_x - 2][(position_y + z) % self.N] >= 0 and \
-                #     #             self.map.car_map[position_x - 2][
-                #     #                 (position_y + z) % self.N].direction == MoveDirection.W:
-                #     #         v = next_intersection  # TODO next_intersection
-                #     #         matrix_v_car[i] = v
-                #
-                #     # for z in range(1, v):
-                #     #     if (self.map.car_v_map[(position_y + z) % self.N][position_x] >= 0 and \
-                #     #             self.map.car_map[(position_y + z) % self.N][position_x].direction == MoveDirection.E) or \
-                #     #             (self.map.car_v_map[(position_y + z) % self.N][position_x] >= 0 and \
-                #     #             self.map.car_map[(position_y + z) % self.N][position_x].direction == MoveDirection.W) or \
-                #     #             (self.map.car_v_map[(position_y + z) % self.N][position_x - 1] >= 0 and \
-                #     #             self.map.car_map[(position_y + z) % self.N][position_x - 1].direction == MoveDirection.E) or \
-                #     #             (self.map.car_v_map[(position_y + z) % self.N][position_x - 1] >= 0 and \
-                #     #             self.map.car_map[(position_y + z) % self.N][position_x - 1].direction == MoveDirection.W):
-                #     #         v = next_intersection  # TODO next_intersection
-                #     #         matrix_v_car[i] = v
-                #
-                #     for z in range(v):
-                #         # print("SPRAWDZAM")
-                #         # print(self.map.car_v_map[(position_y + z + 1) % self.N][position_x])
-                #         # print(self.map.car_map[(position_y + z + 1) % self.N][position_x].direction)
-                #         if (self.map.car_v_map[(position_y - z - 1) % self.N][position_x] >= 0 and \
-                #             self.map.car_map[(position_y - z - 1) % self.N][position_x].direction == MoveDirection.E) or \
-                #                 (self.map.car_v_map[(position_y - z - 1) % self.N][position_x] >= 0 and \
-                #                  self.map.car_map[(position_y - z - 1) % self.N][position_x].direction == MoveDirection.W) or \
-                #                 (self.map.car_v_map[(position_y - z - 1) % self.N][position_x - 1] >= 0 and \
-                #                  self.map.car_map[(position_y - z - 1) % self.N][
-                #                      position_x - 1].direction == MoveDirection.E) or \
-                #                 (self.map.car_v_map[(position_y - z - 1) % self.N][position_x - 1] >= 0 and \
-                #                  self.map.car_map[(position_y - z - 1) % self.N][position_x - 1].direction == MoveDirection.W):
-                #             v = next_intersection
-                #             print(v) # TODO coś z prędkością (za dużo czasami (pewnie odległość do następnego skrztzowania))
-                #             matrix_v_car[i] = v
+                if (next_lights_bool == 1) and matrix_car[i].will_turn: ##dodałęm sprawdzam
+                    if sprawdzam():
+                        if matrix_car[i].will_turn_right and v > next_right:
+                            v = min(next_right, next_car, v, next_lights)
+                            matrix_v_car[i] = v
+                        elif matrix_car[i].will_turn_left and v > next_left:
+                            v = min(next_left, next_car, v, next_lights)
+                            matrix_v_car[i] = v
+                    else:
+                        if matrix_car[i].will_turn_right and v > next_right:
+                            v = min(next_right, next_car, v)
+                            matrix_v_car[i] = v
+                        elif matrix_car[i].will_turn_left and v > next_left:
+                            v = min(next_left, next_car, v)
+                            matrix_v_car[i] = v
                 else:
-                    ######test
-                    # if v > min(next_lights, next_car) and sprawdzam():
-                    #     print("SPRAWDZAM:")
-                    #     print(sprawdzam())
-                    #     v = min(next_lights, next_car, v)
-                    #     matrix_v_car[i] = v
-                    # else: ##można usunąć
-                    ######test
-
                     v = min(v, next_car)
                     matrix_v_car[i] = v
             else:
                 pass  # velocity can't be negative or car is driving another direction
-
         # TODO special condition if cars on the crossroad
         # jeżeli droga zajęta i jadą w e lub w to stój
 
@@ -324,9 +336,8 @@ class Simulation:
                 matrix_v_car[i] = v
             else:
                 pass  # everything ok
-
     def move(self, matrix):
-
+        print(f"PRZED: {len(matrix[matrix>=0])}")
         new_map = self.map.temp_map()
         new_car_map = [[None] * self.N for _ in range(self.N)]
 
@@ -346,8 +357,14 @@ class Simulation:
             intersections_matrix = self.map.intersections_map[:, n]
             intersections_matrix = intersections_matrix[::-1]
 
+            left_turn_matrix = self.map.left_map_n[:, n]
+            left_turn_matrix = left_turn_matrix[::-1]
+
+            right_turn_matrix = self.map.right_map_n[:, n]
+            right_turn_matrix = right_turn_matrix[::-1]
+
             # self.acceleration(car_matrix)
-            self.deacceleration(car_matrix, car_v_matrix, lights_matrix, intersections_matrix, MoveDirection.N)
+            self.deacceleration(car_matrix, car_v_matrix, lights_matrix, intersections_matrix, left_turn_matrix, right_turn_matrix, MoveDirection.N)
             self.random_events(car_matrix, car_v_matrix, MoveDirection.N)
 
             # new_car_matrix = np.full((self.map.N), -99)
@@ -359,6 +376,14 @@ class Simulation:
 
             for i, v in enumerate(car_v_matrix):
                 if v >= 0 and car_matrix[i].direction == MoveDirection.N:
+                    if new_car_matrix[(i + v) % len(car_matrix)] >= 0:
+                        print(f"OLD Car position: {car_matrix[i].position_normal.y, car_matrix[i].position_normal.x}, {car_matrix[i].direction}")
+                        print(
+                            f"NEW CAr position: {new_car_object_matrix[i].position_normal.y, new_car_object_matrix[i].position_normal.x}, {new_car_object_matrix[i].direction}")
+                        print("N")
+                        print(i)
+                        print(f"V: {v}")
+                        print("KOLIZJA")
                     new_car_matrix[(i + v) % len(car_v_matrix)] = v
                     #########################################
                     car = car_matrix[i]
@@ -369,7 +394,7 @@ class Simulation:
             #############################################
             new_car_object_matrix = new_car_object_matrix[::-1]
             for i in range(len(new_car_map)):
-                if new_car_map[i][n] == None:  # dodałęm tą linie
+                if new_car_map[i][n] == None:  # dodałem tą linie
                     new_car_map[i][n] = new_car_object_matrix[i]
 
             new_map[:, n] = new_car_matrix
@@ -384,8 +409,12 @@ class Simulation:
 
             intersections_matrix = self.map.intersections_map[:, s]
 
+            left_turn_matrix = self.map.left_map_s[:, s]
+
+            right_turn_matrix = self.map.right_map_s[:, s]
+
             # self.acceleration(car_matrix)
-            self.deacceleration(car_matrix, car_v_matrix, lights_matrix, intersections_matrix, MoveDirection.S)
+            self.deacceleration(car_matrix, car_v_matrix, lights_matrix, intersections_matrix, left_turn_matrix, right_turn_matrix, MoveDirection.S)
             self.random_events(car_matrix, car_v_matrix, MoveDirection.S)
 
             # new_car_matrix = np.full((self.map.N), -99)  # should be integer
@@ -396,6 +425,13 @@ class Simulation:
 
             for i, v in enumerate(car_v_matrix):
                 if v >= 0 and car_matrix[i].direction == MoveDirection.S:
+                    if new_car_matrix[(i + v) % len(car_matrix)] >= 0:
+                        print(f"OLD Car position: {car_matrix[i].position_normal.y, car_matrix[i].position_normal.x}, {car_matrix[i].direction}")
+                        print(f"NEW CAr position: {new_car_object_matrix[i].position_normal.y, new_car_object_matrix[i].position_normal.x}, {new_car_object_matrix[i].direction}")
+                        print("S")
+                        print(i)
+                        print(f"V: {v}")
+                        print("KOLIZJA")
                     new_car_matrix[(i + v) % len(car_v_matrix)] = v
                     #########################################
                     car = car_matrix[i]
@@ -415,10 +451,14 @@ class Simulation:
 
             lights_matrix = self.map.lights_map[e]
 
-            intersections_matrix = self.map.intersections_map[:, e]
+            intersections_matrix = self.map.intersections_map[e]
+
+            left_turn_matrix = self.map.left_map_e[e]
+            right_turn_matrix = self.map.right_map_e[e]
+
 
             # self.acceleration(car_matrix)
-            self.deacceleration(car_matrix, car_v_matrix, lights_matrix, intersections_matrix, MoveDirection.E)
+            self.deacceleration(car_matrix, car_v_matrix, lights_matrix, intersections_matrix, left_turn_matrix, right_turn_matrix, MoveDirection.E)
             self.random_events(car_matrix, car_v_matrix, MoveDirection.E)
 
             # new_car_matrix = np.full((self.map.N), -99)  # should be integer
@@ -429,6 +469,15 @@ class Simulation:
 
             for i, v in enumerate(car_v_matrix):
                 if v >= 0 and car_matrix[i].direction == MoveDirection.E:
+                    if new_car_matrix[(i + v) % len(car_matrix)] >= 0:
+                        print(
+                            f"OLD Car position: {car_matrix[i].position_normal.y, car_matrix[i].position_normal.x}, {car_matrix[i].direction}")
+                        print(
+                            f"NEW CAr position: {new_car_object_matrix[i].position_normal.y, new_car_object_matrix[i].position_normal.x}, {new_car_object_matrix[i].direction}")
+                        print("E")
+                        print(i)
+                        print(f"V: {v}")
+                        print("KOLIZJA")
                     new_car_matrix[(i + v) % len(car_matrix)] = v
                     #########################################
                     car = car_matrix[i]
@@ -455,11 +504,17 @@ class Simulation:
             lights_matrix = self.map.lights_map[w]
             lights_matrix = lights_matrix[::-1]
 
-            intersections_matrix = self.map.intersections_map[:, w]
+            intersections_matrix = self.map.intersections_map[w]
             intersections_matrix = intersections_matrix[::-1]
 
+            left_turn_matrix = self.map.left_map_w[w]
+            left_turn_matrix = left_turn_matrix[::-1]
+
+            right_turn_matrix = self.map.right_map_w[w]
+            right_turn_matrix = right_turn_matrix[::-1]
+
             # self.acceleration(car_matrix)
-            self.deacceleration(car_matrix, car_v_matrix, lights_matrix, intersections_matrix, MoveDirection.W)
+            self.deacceleration(car_matrix, car_v_matrix, lights_matrix, intersections_matrix, left_turn_matrix, right_turn_matrix, MoveDirection.W)
             self.random_events(car_matrix, car_v_matrix, MoveDirection.W)
 
             # new_car_matrix = np.full((self.map.N), -99)  # should be integer
@@ -471,6 +526,15 @@ class Simulation:
 
             for i, v in enumerate(car_v_matrix):
                 if v >= 0 and car_matrix[i].direction == MoveDirection.W:
+                    if new_car_matrix[(i + v) % len(car_matrix)] >= 0:
+                        print(
+                            f"OLD Car position: {car_matrix[i].position_normal.y, car_matrix[i].position_normal.x}, {car_matrix[i].direction}")
+                        print(
+                            f"NEW CAr position: {new_car_object_matrix[i].position_normal.y, new_car_object_matrix[i].position_normal.x}, {new_car_object_matrix[i].direction}")
+                        print("W")
+                        print(i)
+                        print(f"V: {v}")
+                        print("KOLIZJA")
                     new_car_matrix[(i + v) % len(car_matrix)] = v
                     #########################################
                     car = car_matrix[i]
@@ -490,6 +554,8 @@ class Simulation:
             for j in range(self.N):
                 object = new_car_map[j][i]
                 if object != None:
+                    object.position_normal.x = i
+                    object.position_normal.y = j
                     direction = object.direction
                     a = 2 * (new_map[j][i] - object.old_v * self.time) / self.time ** 2  # 2(vk - vp*t)/t^2
                     a = a * 7  ## GRID size
@@ -507,7 +573,39 @@ class Simulation:
 
                     object.old_v = new_map[j][i]
 
+        # update direction for cars which turning
+        for pos_i in self.map.e + self.map.w:
+            for pos_j in self.map.n + self.map.s:
+                # self.intersections_map[pos_i][pos_j] = 0
+
+                object = new_car_map[pos_i][pos_j]
+                if object != None:
+                    if object.will_turn:
+                        direction = object.direction
+
+                        if object.will_turn_right:
+                            if direction == MoveDirection.N and pos_i in self.map.e:
+                                object.direction = MoveDirection.E
+                            elif direction == MoveDirection.S and pos_i in self.map.w:
+                                object.direction = MoveDirection.W
+                            elif direction == MoveDirection.W and pos_j in self.map.n:
+                                object.direction = MoveDirection.N
+                            elif direction == MoveDirection.E and pos_j in self.map.s:
+                                object.direction = MoveDirection.S
+
+                        if object.will_turn_left:
+                            if direction == MoveDirection.N and pos_i in self.map.w:
+                                object.direction = MoveDirection.W
+                            elif direction == MoveDirection.S and pos_i in self.map.e:
+                                object.direction = MoveDirection.E
+                            elif direction == MoveDirection.W and pos_j in self.map.s:
+                                object.direction = MoveDirection.S
+                            elif direction == MoveDirection.E and pos_j in self.map.n:
+                                object.direction = MoveDirection.N
+
+
         self.map.car_map = new_car_map
+        print(f"PO: {len(new_map[new_map >= 0])}")
         return new_map
 
 
@@ -516,6 +614,8 @@ class Engine:
         self.simulation = simulation
         self.map = map
         self.ticks = 0
+        self.horizontal = False
+        self.vertical = True
 
     def loop(self):
         # if self.ticks % 8 == 0:
@@ -523,25 +623,36 @@ class Engine:
         #         self.map.lights_map[11,9] = 0
         #     else:
         #         self.map.lights_map[11, 9] = 1
-
-        if self.ticks % 6 == 0:
+        if self.ticks % 8 == 0:
             y = self.map.lights_positions_n + self.map.lights_positions_s
             x = self.map.lights_positions_e + self.map.lights_positions_w
-            for pos in y:
-                if self.map.lights_map[pos[0], pos[1]] == 1:
-                    self.map.lights_map[pos[0], pos[1]] = 0
-                else:
-                    self.map.lights_map[pos[0], pos[1]] = 1
-            for pos in x:
-                if self.map.lights_map[pos[0], pos[1]] == 0:
-                    self.map.lights_map[pos[0], pos[1]] = 1
-                else:
-                    self.map.lights_map[pos[0], pos[1]] = 0
+            if self.horizontal:
+                for pos in y:
+                    if self.map.lights_map[pos[0], pos[1]] == 1:
+                        self.map.lights_map[pos[0], pos[1]] = 0
+                    else:
+                        self.map.lights_map[pos[0], pos[1]] = 1
+            if self.vertical:
+                for pos in x:
+                    if self.map.lights_map[pos[0], pos[1]] == 0:
+                        self.map.lights_map[pos[0], pos[1]] = 1
+                    else:
+                        self.map.lights_map[pos[0], pos[1]] = 0
+        elif self.ticks % 8 == 5:
+            for pos in self.map.lights_positions_n + self.map.lights_positions_s + self.map.lights_positions_e + self.map.lights_positions_w:
+                self.map.lights_map[pos[0], pos[1]] = 0
+            self.vertical = not self.vertical
+            self.horizontal = not self.horizontal
 
         matrix = copy.deepcopy(self.map.car_v_map)
         new_map = self.simulation.move(matrix)
         self.map.car_v_map_update(new_map)
         self.ticks += 1
+        # print("##################################################################")
+        # print("NEW TICK")
+        # print(len(self.simulation.cars))
+        # for car in self.simulation.cars:
+        #     print(f"({car.position.x / 7}, {car.position.y / 7})")
 
     def update(self, delta_time, car):
         car.acceleration = Vector(0, 0)  ### to dodałem
@@ -598,7 +709,6 @@ class Window:
             self.engine.update(delta_time, car)
             rect = pygame.Rect(car.position.x, car.position.y, self.OBJECT_SIZE, self.OBJECT_SIZE)  ##*10
             pygame.draw.rect(self.screen, (255, 0, 0), rect)
-
     def loop(self):
         # Główna pętla gry
         clock = pygame.time.Clock()
@@ -615,8 +725,8 @@ class Window:
             self.screen.fill((0, 0, 0))
 
             # Rysowanie kratki na mapie
-            self.draw_grid()
 
+            self.draw_grid()
             # Rysowanie obiektów
             # object_positions = [(1, 0), (0, 15), (50, 0)] # Przykładowe pozycje obiektów
             # for pos in object_positions:
@@ -650,6 +760,7 @@ class Window:
             self.tick += 1
 
 
+
 cars = []
 map = Map(100)
 car = map.add_car(11, 0, MoveDirection.E)
@@ -662,15 +773,17 @@ car = map.add_car(10,2, MoveDirection.W)
 cars.append(car)
 car = map.add_car(10,7, MoveDirection.W)
 cars.append(car)
-car = map.add_car(13, 3, MoveDirection.N)
+car = map.add_car(15, 3, MoveDirection.N)
 cars.append(car)
-
+#
 car = map.add_car(11, 3, MoveDirection.E)
 cars.append(car)
 car = map.add_car(11, 4, MoveDirection.E)
 cars.append(car)
 car = map.add_car(11, 5, MoveDirection.E)
 cars.append(car)
+
+
 car = map.add_car(11, 6, MoveDirection.E)
 cars.append(car)
 car = map.add_car(11, 7, MoveDirection.E)
@@ -712,8 +825,9 @@ cars.append(car)
 
 car = map.add_car(5, 3, MoveDirection.N)
 cars.append(car)
-car = map.add_car(6, 3, MoveDirection.N)
-cars.append(car)
+
+#TODO car position nie jest aktualizowane ( niektóre funkcje się na tym opierają ) najlepiej ctr+f positon.x, position.y
+#TODO zmiana kierunków popraw
 
 simulation = Simulation(6, map, cars, 1)
 engine = Engine(simulation, map)
@@ -732,6 +846,10 @@ window.loop()
 # engine.loop()
 # engine.loop()
 # engine.loop()
+# engine.loop()
+# engine.loop()
+# engine.loop()
+
 
 # matrix = copy.deepcopy(map.car_v_map)
 # new_map = simulation.move(matrix)
