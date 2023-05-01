@@ -30,6 +30,10 @@ class Map:
         self.s = [2, 10]
         self.w = [2, 10]  # zamienielem w i e
         self.e = [3, 11]
+        # self.n = [50]
+        # self.s = [49]
+        # self.w = [49]  # zamienielem w i e
+        # self.e = [50]
         self.__PROPABILITY = 0.2
         self.lights_positions_n = [(4, 3), (4, 11), (12, 3), (12, 11)]
         self.lights_positions_s = [(1, 2), (1, 10), (9, 2), (9, 10)]
@@ -119,6 +123,7 @@ class Map:
         # for pos_i in self.e + self.w:
         #     for pos_j in self.n + self.s:
         #         self.intersections_map[pos_i][pos_j] = 0
+
         # for n directions roads
         for pos_i in self.e:
             for pos_j in self.n:
@@ -155,7 +160,41 @@ class Intersection:
 
 
     def check_jam(self, cars_v_matrix, cars_object_matrix): #function return position and v (to change v_matrix) of random choice car to solve jam
-        print("HELLO")
+
+        def can_go(car:Car, i, j):
+            if car.direction == MoveDirection.N:
+                if car.will_turn:
+                    if car.will_turn_right:
+                        return cars_v_matrix[i - 1][j + 1] < 0 and map.car_v_map[i - 1][j] < 0
+                    if car.will_turn_left:
+                        return cars_v_matrix[i - 2][j - 2] < 0 and map.car_v_map[i - 2][j - 1] < 0 and map.car_v_map[i - 2][j] < 0 and map.car_v_map[i - 1][j] < 0
+                else:
+                    return cars_v_matrix[i - 3][j] < 0 and map.car_v_map[i - 1][j] < 0 and map.car_v_map[i - 2][j] < 0
+            if car.direction == MoveDirection.S:
+                if car.will_turn:
+                    if car.will_turn_right:
+                        return cars_v_matrix[i + 1][j - 1] < 0 and map.car_v_map[i + 1][j] < 0
+                    if car.will_turn_left:
+                        return cars_v_matrix[i + 2][j + 2] < 0 and map.car_v_map[i + 2][j + 1] < 0 and map.car_v_map[i + 2][j] < 0 and map.car_v_map[i + 1][j] < 0
+                else:
+                    return cars_v_matrix[i + 3][j] < 0 and map.car_v_map[i + 1][j] < 0 and map.car_v_map[i + 2][j] < 0
+            if car.direction == MoveDirection.W:
+                if car.will_turn:
+                    if car.will_turn_right:
+                        return cars_v_matrix[i - 1][j - 1] < 0 and map.car_v_map[i][j - 1] < 0
+                    if car.will_turn_left:
+                        return cars_v_matrix[i + 2][j - 2] < 0 and map.car_v_map[i + 1][j - 2] < 0 and map.car_v_map[i][j - 2] < 0 and map.car_v_map[i][j - 1] < 0
+                else:
+                    return cars_v_matrix[i][j - 3] < 0 and map.car_v_map[i][j - 1] < 0 and map.car_v_map[i][j - 2] < 0
+            if car.direction == MoveDirection.E:
+                if car.will_turn:
+                    if car.will_turn_right:
+                        return cars_v_matrix[i + 1][j + 1] < 0 and map.car_v_map[i][j + 1] < 0
+                    if car.will_turn_left:
+                        return cars_v_matrix[i - 2][j + 2] < 0 and map.car_v_map[i - 1][j + 2] < 0 and map.car_v_map[i][j + 2] < 0 and map.car_v_map[i][j + 1] < 0
+                else:
+                    return cars_v_matrix[i][j + 3] < 0 and map.car_v_map[i][j + 1] < 0 and map.car_v_map[i][j + 2] < 0
+
         cars = []
         standing_cars = []
 
@@ -178,16 +217,20 @@ class Intersection:
             cars.append(car4)
 
         for car in cars:
-            print("XD")
             if cars_v_matrix[car.position_normal.y][car.position_normal.x] == 0:
-                print("Działa")
                 standing_cars.append(False)
 
         if len(cars) == len(standing_cars) and len(cars) > 0:  # their is a jam
-            print(len(cars))
-            print(len(standing_cars))
-            random_car = random.choice(cars)
-            random_car.go = True
+            for _ in range(len(cars)):
+                random_car = random.choice(cars)
+                i = random_car.position_normal.y
+                j = random_car.position_normal.x
+                # checking if position after posible turn is free
+                if can_go(random_car, i, j):
+                    random_car.go = True
+                    break
+                else:
+                    cars.remove(random_car)
             # v = 0
             # if random_car.will_turn:
             #     if random_car.will_turn_right:
@@ -211,6 +254,7 @@ class Car:
         self.will_turn_right = False
         self.will_turn_left = False
         self.go = False
+        self.can_draw_turn = False
         self.WILL_TURN_PROPABILITY = 0.5
         self.WILL_TURN_RIGHT_PROPABILITY = 0.7
         self.draw_next_turn()
@@ -239,13 +283,64 @@ class Vector:
 
 
 class Simulation:
-    def __init__(self, v_max, map, cars, time):
+    def __init__(self, v_max, map, cars_number, time):
         self.__PROPABILITY = 0.2
         self.v_max = v_max
         self.map = map
         self.N = map.N
         self.time = time
-        self.cars = cars
+        self.cars = []
+        self.cars_number = cars_number
+        self.generate_cars()
+
+
+    def generate_cars(self):
+        invalid_positions = []
+        valid_positions = []
+
+        #creating invalid positions list (intersections)
+        for pos_i in self.map.e + self.map.w:
+            for pos_j in self.map.n + self.map.s:
+                invalid_positions.append((pos_i, pos_j))
+
+        #creating valid positions list:
+        # horizontal roads
+        for i in self.map.e + self.map.w:
+            for j in range(self.map.N):
+                pos = (i, j)
+                if pos in invalid_positions:
+                    pass # this position is invalid
+                else:
+                    valid_positions.append(pos) # this position is valid (add to the valid list)
+        # vertical roads
+        for j in self.map.s + self.map.n:
+            for i in range(self.map.N):
+                pos = (i, j)
+                if pos in invalid_positions:
+                    pass  # this position is invalid
+                else:
+                    valid_positions.append(pos)  # this position is valid (add to the valid list)
+
+        print(f"VALID NUMBER: {len(valid_positions)}, INVALID_NUMBER: {len(invalid_positions)}")
+        # generating cars on the map
+        for i in range(self.cars_number):
+            pos = random.choice(valid_positions)
+            valid_positions.remove(pos)
+
+            # checking proper move direction
+            if pos[0] in self.map.e:
+                direction = MoveDirection.E
+            elif pos[0] in self.map.w:
+                direction = MoveDirection.W
+            elif pos[1] in self.map.n:
+                direction = MoveDirection.N
+            else:
+                direction = MoveDirection.S
+
+            # generating car object
+            car = map.add_car(pos[0], pos[1], direction)
+            self.cars.append(car)
+
 
     def acceleration(self, matrix):
         condition = np.logical_and(matrix >= 0, matrix < self.v_max)
@@ -292,36 +387,50 @@ class Simulation:
         def can_go(car: Car):  # true if can go, false othervise
 
             # heliping finctions
-            def can_go_streight():
+
+            def can_go_right():
                 if car.direction == MoveDirection.N:
-                    if map.car_v_map[i - 3][j] < 0 and map.car_v_map[i - 2][j + 1] < 0:
-                        print(map.car_v_map[i - 3][j])
-                        print(map.car_v_map[i - 2][j + 1])
+                    if map.car_v_map[i - 1][j + 1] < 0 and map.car_v_map[i - 1][j] < 0:
                         return True
                 elif car.direction == MoveDirection.S:
-                    if map.car_v_map[i + 3][j] < 0 and map.car_v_map[i + 2][j - 1] < 0:
+                    if map.car_v_map[i + 1][j - 1] < 0 and map.car_v_map[i + 1][j] < 0:
                         return True
                 elif car.direction == MoveDirection.W:
-                    if map.car_v_map[i][j - 3] < 0 and map.car_v_map[i - 1][j - 2] < 0:
+                    if map.car_v_map[i - 1][j - 1] < 0 and map.car_v_map[i][j - 1] < 0:
                         return True
                 elif car.direction == MoveDirection.E:
-                    if map.car_v_map[i][j + 3] < 0 and map.car_v_map[i + 1][j + 2] < 0:
+                    if map.car_v_map[i + 1][j + 1] < 0 and map.car_v_map[i][j + 1] < 0:
+                        return True
+                else:
+                    return False
+            def can_go_streight():
+                if car.direction == MoveDirection.N:
+                    if map.car_v_map[i - 3][j] < 0 and map.car_v_map[i - 2][j + 1] < 0 and map.car_v_map[i - 1][j] < 0 and map.car_v_map[i - 2][j] < 0:
+                        return True
+                elif car.direction == MoveDirection.S:
+                    if map.car_v_map[i + 3][j] < 0 and map.car_v_map[i + 2][j - 1] < 0 and map.car_v_map[i + 1][j] < 0 and map.car_v_map[i + 2][j] < 0:
+                        return True
+                elif car.direction == MoveDirection.W:
+                    if map.car_v_map[i][j - 3] < 0 and map.car_v_map[i - 1][j - 2] < 0 and map.car_v_map[i][j - 1] < 0 and map.car_v_map[i][j - 2] < 0:
+                        return True
+                elif car.direction == MoveDirection.E:
+                    if map.car_v_map[i][j + 3] < 0 and map.car_v_map[i + 1][j + 2] < 0 and map.car_v_map[i][j + 1] < 0 and map.car_v_map[i][j + 2] < 0:
                         return True
                 else:
                     return False
 
             def left_check():  # i - wiersze, j-kolumny
                 if car.direction == MoveDirection.N:
-                    if map.car_v_map[i - 3][j - 1] < 0 and map.car_v_map[i - 2][j - 2] < 0:
+                    if map.car_v_map[i - 3][j - 1] < 0 and map.car_v_map[i - 2][j - 2] < 0 and map.car_v_map[i - 2][j - 1] < 0:
                         return True
                 elif car.direction == MoveDirection.S:
-                    if map.car_v_map[i + 3][j + 1] < 0 and map.car_v_map[i + 2][j + 2] < 0:
+                    if map.car_v_map[i + 3][j + 1] < 0 and map.car_v_map[i + 2][j + 2] < 0 and map.car_v_map[i + 2][j + 1] < 0:
                         return True
                 elif car.direction == MoveDirection.W:
-                    if map.car_v_map[i + 1][j - 3] < 0 and map.car_v_map[i + 2][j - 2] < 0:
+                    if map.car_v_map[i + 1][j - 3] < 0 and map.car_v_map[i + 2][j - 2] < 0 and map.car_v_map[i + 1][j - 2] < 0:
                         return True
                 elif car.direction == MoveDirection.E:
-                    if map.car_v_map[i - 1][j + 3] < 0 and map.car_v_map[i - 2][j + 2] < 0:
+                    if map.car_v_map[i - 1][j + 3] < 0 and map.car_v_map[i - 2][j + 2] < 0 and map.car_v_map[i - 1][j + 2] < 0:
                         return True
                 else:
                     return False
@@ -331,10 +440,12 @@ class Simulation:
             j = car.position_normal.x
 
             print(f"i={i}, j={j}")
+            #drawing next turn
+            car.draw_next_turn()
 
             if car.will_turn:
                 if car.will_turn_right:
-                    return True
+                    return can_go_right()
                 if car.will_turn_left:
                     return can_go_streight() and left_check()
 
@@ -352,6 +463,7 @@ class Simulation:
                 next_left = self.next_left_distance(matrix_left_turn, i)
 
                 if next_intersection == 0:
+                    car.can_draw_turn = True
                     if can_go(car) or car.go:
                         print("CO KOLWIEK")
                         if car.will_turn:
@@ -473,15 +585,6 @@ class Simulation:
 
             for i, v in enumerate(car_v_matrix):
                 if v >= 0 and car_matrix[i].direction == MoveDirection.S:
-                    if new_car_matrix[(i + v) % len(car_matrix)] >= 0:
-                        print(
-                            f"OLD Car position: {car_matrix[i].position_normal.y, car_matrix[i].position_normal.x}, {car_matrix[i].direction}")
-                        print(
-                            f"NEW CAr position: {new_car_object_matrix[i].position_normal.y, new_car_object_matrix[i].position_normal.x}, {new_car_object_matrix[i].direction}")
-                        print("S")
-                        print(i)
-                        print(f"V: {v}")
-                        print("KOLIZJA")
                     new_car_matrix[(i + v) % len(car_v_matrix)] = v
                     #########################################
                     car = car_matrix[i]
@@ -519,15 +622,6 @@ class Simulation:
 
             for i, v in enumerate(car_v_matrix):
                 if v >= 0 and car_matrix[i].direction == MoveDirection.E:
-                    if new_car_matrix[(i + v) % len(car_matrix)] >= 0:
-                        print(
-                            f"OLD Car position: {car_matrix[i].position_normal.y, car_matrix[i].position_normal.x}, {car_matrix[i].direction}")
-                        print(
-                            f"NEW CAr position: {new_car_object_matrix[i].position_normal.y, new_car_object_matrix[i].position_normal.x}, {new_car_object_matrix[i].direction}")
-                        print("E")
-                        print(i)
-                        print(f"V: {v}")
-                        print("KOLIZJA")
                     new_car_matrix[(i + v) % len(car_matrix)] = v
                     #########################################
                     car = car_matrix[i]
@@ -577,15 +671,6 @@ class Simulation:
 
             for i, v in enumerate(car_v_matrix):
                 if v >= 0 and car_matrix[i].direction == MoveDirection.W:
-                    if new_car_matrix[(i + v) % len(car_matrix)] >= 0:
-                        print(
-                            f"OLD Car position: {car_matrix[i].position_normal.y, car_matrix[i].position_normal.x}, {car_matrix[i].direction}")
-                        print(
-                            f"NEW CAr position: {new_car_object_matrix[i].position_normal.y, new_car_object_matrix[i].position_normal.x}, {new_car_object_matrix[i].direction}")
-                        print("W")
-                        print(i)
-                        print(f"V: {v}")
-                        print("KOLIZJA")
                     new_car_matrix[(i + v) % len(car_matrix)] = v
                     #########################################
                     car = car_matrix[i]
@@ -658,7 +743,9 @@ class Simulation:
                             elif direction == MoveDirection.E and pos_j in self.map.n:
                                 object.direction = MoveDirection.N
                     #drawing next turn for a car
-                    object.draw_next_turn()
+                    # if object.can_draw_turn:
+                    #     object.draw_next_turn()
+                    #     object.can_draw_turn = False
 
         self.map.car_map = new_car_map
         print(f"PO: {len(new_map[new_map >= 0])}")
@@ -768,6 +855,7 @@ class Window:
             pygame.draw.rect(self.screen, car.color, rect)
 
     def draw_roads(self):
+
         for i in range(self.engine.map.N):
             for j in range(self.engine.map.N):
                 if self.engine.map.road_map[i][j] == -99:
@@ -821,17 +909,18 @@ class Window:
                 self.engine.loop(self.update_time)
                 self.update_time = 0
 
-
+#TODO drawing_next_turn
 cars = []
 map = Map(100)
-car = map.add_car(11, 1, MoveDirection.E)
-cars.append(car)
-car = map.add_car(10, 4, MoveDirection.W)
-cars.append(car)
-car = map.add_car(12, 3, MoveDirection.N)
-cars.append(car)
-car = map.add_car(9, 2, MoveDirection.S)
-cars.append(car)
+
+# car = map.add_car(11, 1, MoveDirection.E)
+# cars.append(car)
+# car = map.add_car(10, 4, MoveDirection.W)
+# cars.append(car)
+# car = map.add_car(12, 3, MoveDirection.N)
+# cars.append(car)
+# car = map.add_car(9, 2, MoveDirection.S)
+# cars.append(car)
 
 # car = map.add_car(13, 3, MoveDirection.N)
 # cars.append(car)
@@ -900,10 +989,16 @@ cars.append(car)
 # TODO car position nie jest aktualizowane ( niektóre funkcje się na tym opierają ) najlepiej ctr+f positon.x, position.y
 # TODO zmiana kierunków popraw
 
-simulation = Simulation(6, map, cars, 1)
-engine = Engine(simulation, map)
-window = Window(engine)
-window.loop()
+# simulation = Simulation(v_max=6, map=map, cars_number=700, time=1)
+# engine = Engine(simulation, map)
+# window = Window(engine)
+# window.loop()
+
+
+# simulation = Simulation(v_max=6, map=map, cars_number=700, time=1)
+# engine = Engine(simulation, map)
+# for _ in range(500):
+#     engine.loop(0)
 
 # simulation = Simulation(6, map, cars, 1)
 # engine = Engine(simulation, map)
