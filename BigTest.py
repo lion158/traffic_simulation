@@ -258,6 +258,7 @@ class Car:
         self.WILL_TURN_PROPABILITY = 0.5
         self.WILL_TURN_RIGHT_PROPABILITY = 0.7
         self.draw_next_turn()
+        self.can_change_direction = False
         color_r = random.randint(50, 200)
         color_g = random.randint(50, 200)
         color_b = random.randint(50, 200)
@@ -463,9 +464,9 @@ class Simulation:
                 next_left = self.next_left_distance(matrix_left_turn, i)
 
                 if next_intersection == 0:
+                    car.can_change_direction = True
                     car.can_draw_turn = True
                     if can_go(car) or car.go:
-                        print("CO KOLWIEK")
                         if car.will_turn:
                             if car.will_turn_right:
                                 v = 1
@@ -500,10 +501,52 @@ class Simulation:
             else:
                 pass  # everything ok
 
+    # def find_common_values(self, list1, list2):
+    #     return list(set(list1) & set(list2))
+
+    # def all_cars_position(self):
+    #     list1 = []
+    #     for car in self.cars:
+    #        list1.append(car.position_normal)
+    #         if car.position_normal in list1:
+    #             print(f"POWTARZA SIĘ {car.position_normal}")
+
+    # def all_cars_position(self):
+    #     for i, car1 in enumerate(self.cars):
+    #         for j, car2 in enumerate(self.cars):
+    #             if i != j and car1.position_normal == car2.position_normal:
+    #                 print(f"POWTARZA SIĘ {car1.position_normal}")
+    #
+    # def all_number_position(self, matrix):
+    #     list2 = []
+    #     for i in range(self.N):
+    #         for j in range(self.N):
+    #             if matrix[i][j] >= 0:
+    #                 ...
+    #
+    # def find_empty_positions(self, car_positions, all_positions):
+    #     occupied_positions = set(car_positions)
+    #     empty_positions = set(all_positions) - occupied_positions
+    #     return list(empty_positions)
 
 
     def move(self, matrix, time):
         print(f"PRZED: {len(matrix[matrix >= 0])}")
+
+        # p = []
+        # for i in range(self.N):
+        #     for j in range(self.N):
+        #         if matrix[i][j] >= 0:
+        #             p.append((i, j))
+        #
+        # c = []
+        # for car in self.cars:
+        #     c.append(car.position_normal)
+        #
+        # list1 = self.find_empty_positions(c, p)
+        # print(len(list1))
+
+
         new_map = self.map.temp_map()
         new_car_map = [[None] * self.N for _ in range(self.N)]
 
@@ -686,8 +729,8 @@ class Simulation:
             new_map[w] = new_car_matrix
 
         #handling posible intersections jam
-        for intersection in self.map.intersections:
-            intersection.check_jam(cars_v_matrix=new_map, cars_object_matrix=new_car_map)
+        # for intersection in self.map.intersections:
+        #     intersection.check_jam(cars_v_matrix=new_map, cars_object_matrix=new_car_map)
 
         # update cars objects velocity:
         for i in range(self.N):
@@ -720,28 +763,37 @@ class Simulation:
 
                 object = new_car_map[pos_i][pos_j]
                 if object != None:
-                    if object.will_turn:
-                        direction = object.direction
+                    if object.can_change_direction:
+                        if object.will_turn:
+                            direction = object.direction
 
-                        if object.will_turn_right:
-                            if direction == MoveDirection.N and pos_i in self.map.e:
-                                object.direction = MoveDirection.E
-                            elif direction == MoveDirection.S and pos_i in self.map.w:
-                                object.direction = MoveDirection.W
-                            elif direction == MoveDirection.W and pos_j in self.map.n:
-                                object.direction = MoveDirection.N
-                            elif direction == MoveDirection.E and pos_j in self.map.s:
-                                object.direction = MoveDirection.S
+                            if object.will_turn_right:
+                                if direction == MoveDirection.N and pos_i in self.map.e:
+                                    object.direction = MoveDirection.E
+                                    object.can_change_direction = False
+                                elif direction == MoveDirection.S and pos_i in self.map.w:
+                                    object.direction = MoveDirection.W
+                                    object.can_change_direction = False
+                                elif direction == MoveDirection.W and pos_j in self.map.n:
+                                    object.direction = MoveDirection.N
+                                    object.can_change_direction = False
+                                elif direction == MoveDirection.E and pos_j in self.map.s:
+                                    object.direction = MoveDirection.S
+                                    object.can_change_direction = False
 
-                        if object.will_turn_left:
-                            if direction == MoveDirection.N and pos_i in self.map.w:
-                                object.direction = MoveDirection.W
-                            elif direction == MoveDirection.S and pos_i in self.map.e:
-                                object.direction = MoveDirection.E
-                            elif direction == MoveDirection.W and pos_j in self.map.s:
-                                object.direction = MoveDirection.S
-                            elif direction == MoveDirection.E and pos_j in self.map.n:
-                                object.direction = MoveDirection.N
+                            if object.will_turn_left:
+                                if direction == MoveDirection.N and pos_i in self.map.w:
+                                    object.direction = MoveDirection.W
+                                    object.can_change_direction = False
+                                elif direction == MoveDirection.S and pos_i in self.map.e:
+                                    object.direction = MoveDirection.E
+                                    object.can_change_direction = False
+                                elif direction == MoveDirection.W and pos_j in self.map.s:
+                                    object.direction = MoveDirection.S
+                                    object.can_change_direction = False
+                                elif direction == MoveDirection.E and pos_j in self.map.n:
+                                    object.direction = MoveDirection.N
+                                    object.can_change_direction = False
                     #drawing next turn for a car
                     # if object.can_draw_turn:
                     #     object.draw_next_turn()
@@ -905,7 +957,7 @@ class Window:
             self.clock.tick(self.FPS)
             self.update_time += delta_time
 
-            if self.tick % 60 == 0:
+            if self.tick % 1 == 0:
                 self.engine.loop(self.update_time)
                 self.update_time = 0
 
@@ -989,15 +1041,15 @@ map = Map(100)
 # TODO car position nie jest aktualizowane ( niektóre funkcje się na tym opierają ) najlepiej ctr+f positon.x, position.y
 # TODO zmiana kierunków popraw
 
-# simulation = Simulation(v_max=6, map=map, cars_number=700, time=1)
-# engine = Engine(simulation, map)
-# window = Window(engine)
-# window.loop()
+simulation = Simulation(v_max=6, map=map, cars_number=700, time=1)
+engine = Engine(simulation, map)
+window = Window(engine)
+window.loop()
 
 
-# simulation = Simulation(v_max=6, map=map, cars_number=700, time=1)
+# simulation = Simulation(v_max=6, map=map, cars_number=200, time=1)
 # engine = Engine(simulation, map)
-# for _ in range(500):
+# for _ in range(1000):
 #     engine.loop(0)
 
 # simulation = Simulation(6, map, cars, 1)
