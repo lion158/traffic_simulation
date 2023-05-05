@@ -26,10 +26,10 @@ class Map:
         self.right_map_w = np.full((self.N, self.N), self.nothing_cell)
         self.left_map_e = np.full((self.N, self.N), self.nothing_cell)
         self.right_map_e = np.full((self.N, self.N), self.nothing_cell)
-        self.n = [3, 11]
-        self.s = [2, 10]
-        self.w = [2, 10]  # zamienielem w i e
-        self.e = [3, 11]
+        self.n = [21, 51, 81]
+        self.s = [20, 50, 80]
+        self.w = [20, 50, 80]  # zamienielem w i e
+        self.e = [21, 51, 81]
         # self.n = [50]
         # self.s = [49]
         # self.w = [49]  # zamienielem w i e
@@ -265,6 +265,11 @@ class Car:
         self.color = (color_r, color_g, color_b)
 
     def draw_next_turn(self):
+        # first setting to start values
+        self.will_turn = False
+        self.will_turn_right = False
+        self.will_turn_left = False
+
         r = random.random()
         if r < self.WILL_TURN_PROPABILITY:
             self.will_turn = True
@@ -441,7 +446,7 @@ class Simulation:
             j = car.position_normal.x
 
             print(f"i={i}, j={j}")
-            #drawing next turn
+            # #drawing next turn
             car.draw_next_turn()
 
             if car.will_turn:
@@ -449,7 +454,6 @@ class Simulation:
                     return can_go_right()
                 if car.will_turn_left:
                     return can_go_streight() and left_check()
-
             else:
                 return can_go_streight()
 
@@ -466,7 +470,7 @@ class Simulation:
                 if next_intersection == 0:
                     car.can_change_direction = True
                     car.can_draw_turn = True
-                    if can_go(car) or car.go:
+                    if can_go(car):
                         if car.will_turn:
                             if car.will_turn_right:
                                 v = 1
@@ -501,51 +505,8 @@ class Simulation:
             else:
                 pass  # everything ok
 
-    # def find_common_values(self, list1, list2):
-    #     return list(set(list1) & set(list2))
-
-    # def all_cars_position(self):
-    #     list1 = []
-    #     for car in self.cars:
-    #        list1.append(car.position_normal)
-    #         if car.position_normal in list1:
-    #             print(f"POWTARZA SIĘ {car.position_normal}")
-
-    # def all_cars_position(self):
-    #     for i, car1 in enumerate(self.cars):
-    #         for j, car2 in enumerate(self.cars):
-    #             if i != j and car1.position_normal == car2.position_normal:
-    #                 print(f"POWTARZA SIĘ {car1.position_normal}")
-    #
-    # def all_number_position(self, matrix):
-    #     list2 = []
-    #     for i in range(self.N):
-    #         for j in range(self.N):
-    #             if matrix[i][j] >= 0:
-    #                 ...
-    #
-    # def find_empty_positions(self, car_positions, all_positions):
-    #     occupied_positions = set(car_positions)
-    #     empty_positions = set(all_positions) - occupied_positions
-    #     return list(empty_positions)
-
-
     def move(self, matrix, time):
         print(f"PRZED: {len(matrix[matrix >= 0])}")
-
-        # p = []
-        # for i in range(self.N):
-        #     for j in range(self.N):
-        #         if matrix[i][j] >= 0:
-        #             p.append((i, j))
-        #
-        # c = []
-        # for car in self.cars:
-        #     c.append(car.position_normal)
-        #
-        # list1 = self.find_empty_positions(c, p)
-        # print(len(list1))
-
 
         new_map = self.map.temp_map()
         new_car_map = [[None] * self.N for _ in range(self.N)]
@@ -729,8 +690,8 @@ class Simulation:
             new_map[w] = new_car_matrix
 
         #handling posible intersections jam
-        # for intersection in self.map.intersections:
-        #     intersection.check_jam(cars_v_matrix=new_map, cars_object_matrix=new_car_map)
+        for intersection in self.map.intersections:
+            intersection.check_jam(cars_v_matrix=new_map, cars_object_matrix=new_car_map)
 
         # update cars objects velocity:
         for i in range(self.N):
@@ -794,6 +755,7 @@ class Simulation:
                                 elif direction == MoveDirection.E and pos_j in self.map.n:
                                     object.direction = MoveDirection.N
                                     object.can_change_direction = False
+                    object.can_change_direction = False
                     #drawing next turn for a car
                     # if object.can_draw_turn:
                     #     object.draw_next_turn()
@@ -927,6 +889,7 @@ class Window:
         # Główna pętla gry
         clock = pygame.time.Clock()
         while True:
+            print(f"TICK: {self.tick}")
             self.tick += 1
             # Obsługa zdarzeń
             for event in pygame.event.get():
@@ -957,7 +920,7 @@ class Window:
             self.clock.tick(self.FPS)
             self.update_time += delta_time
 
-            if self.tick % 1 == 0:
+            if self.tick % 60 == 0:
                 self.engine.loop(self.update_time)
                 self.update_time = 0
 
@@ -1041,7 +1004,7 @@ map = Map(100)
 # TODO car position nie jest aktualizowane ( niektóre funkcje się na tym opierają ) najlepiej ctr+f positon.x, position.y
 # TODO zmiana kierunków popraw
 
-simulation = Simulation(v_max=6, map=map, cars_number=700, time=1)
+simulation = Simulation(v_max=6, map=map, cars_number=200, time=1)
 engine = Engine(simulation, map)
 window = Window(engine)
 window.loop()
