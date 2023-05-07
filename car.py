@@ -1,125 +1,45 @@
 import random
 
-from traffic_simulation.map import Map
-from traffic_simulation.road import Road
-from traffic_simulation.direction import MoveDirection
-from traffic_simulation.vector_2d import Vector_2d
+from traffic_simulation.vector import Vector
 
 
 class Car:
-    def __init__(self, position: Vector_2d, map: Map, road: Road):
-        self.position = position
-        self.road = road
-        self.map = map
-        self.direction = self.road.direction
-        self.v = 0
-        self.__ACCELERATION = 1
-        self.__PROPABILITY = 0.2
+    def __init__(self, direction, position):
+        self.direction = direction
+        self.position = Vector(position[1] * 7, position[0] * 7)  # grid size 5
+        self.position_normal = Vector(position[1], position[0])
+        self.velocity = Vector(0, 0)
+        self.acceleration = Vector(0, 0)
+        self.old_v = 0  ## helping variable to move function in simulation
+        self.will_turn = False
+        self.will_turn_right = False
+        self.will_turn_left = False
+        self.go = False
+        self.can_draw_turn = False
+        self.WILL_TURN_PROPABILITY = 0.5
+        self.WILL_TURN_RIGHT_PROPABILITY = 0.7
+        self.draw_next_turn()
+        self.can_change_direction = False
+        color_r = random.randint(50, 200)
+        color_g = random.randint(50, 200)
+        color_b = random.randint(50, 200)
+        self.color = (color_r, color_g, color_b)
 
-    def change_position(self, position):
-        self.position = position
+    def draw_next_turn(self):
+        # first setting to start values
+        self.will_turn = False
+        self.will_turn_right = False
+        self.will_turn_left = False
 
-    def update_v(self, v):
-        self.v = v
-
-    def update_acceleration(self):
-        if self.v < self.road.get_v_max():
-            self.update_v(self.v + self.__ACCELERATION)
+        r = random.random()
+        if r < self.WILL_TURN_PROPABILITY:
+            self.will_turn = True
+            r = random.random()
+            if r < self.WILL_TURN_RIGHT_PROPABILITY:
+                self.will_turn_right = True
+            else:
+                self.will_turn_left = True
         else:
-            pass  # car can't drive faster ;)
-
-    def deacceleration(self):
-        # if len(self.road.cars) > 1:
-        next_light = self.road.next_lights(self)
-        next_light_distance = self.road.distance(self, next_light)
-        # print(f"NEXT_LIGHT_DISTANCE: {next_light_distance}")
-        next_car_distance = self.road.distance(self, self.road.car_before(self))
-        # print(f"NEXT_CAR_DISTANCE: {next_car_distance}")
-        distance = min(next_car_distance,next_light_distance)
-        print(f"DISTANCE: {distance}, pręskość: {self.v}, light: {next_light.green}")
-        if not next_light.green and self.v > distance:
-            self.update_v(distance)
-            print("CZERWONE!")
-        else:
-            self.update_v(min(self.v, next_car_distance))
-                # deceleration is not necessary
-
-        # if len(self.road.cars) > 1:
-        #     car_before = self.road.car_before(self)
-        #     distance = self.road.distance(self, car_before)
-        #     if self.v > distance:
-        #         self.update_v(distance)
-        # else:
-        #     pass  # deceleration is not necessary
-
-    def random_events(self):
-        if self.v > 0 and random.random() < self.__PROPABILITY:
-            self.update_v(self.v - 1)
-        else:
-            pass  # everything ok
-
-    def move(self):
-        self.update_acceleration()
-        self.deacceleration()
-        # self.random_events()
-
-        # if road direction N
-        if self.direction == MoveDirection.N:
-            new_position = Vector_2d(self.position.x, self.position.y + self.v)
-            if new_position.y <= self.road.lenght:  # to zależy jak będzie lenght (ew + - 1)
-                pass  # valid position
-            else:
-                new_position.y -= self.road.lenght  # to zależy jak będzie lenght (ew + - 1)
-
-        # if road direction S
-        elif self.direction == MoveDirection.S:
-            new_position = Vector_2d(self.position.x, self.position.y - self.v)
-            if new_position.y >= 0:
-                pass  # valid position
-            else:
-                new_position.y += self.road.lenght  # to zależy jak będzie lenght (ew + - 1)
-
-        # if road direction W
-        elif self.direction == MoveDirection.W:
-            new_position = Vector_2d(self.position.x - self.v, self.position.y)
-            if new_position.x >= 0:
-                pass  # valid position
-            else:
-                new_position.x += self.road.lenght  # to zależy jak będzie lenght (ew + - 1)
-
-        # if road direction E
-        elif self.direction == MoveDirection.E:
-            new_position = Vector_2d(self.position.x + self.v, self.position.y)
-            if new_position.x <= self.road.lenght:  # to zależy jak będzie lenght (ew + - 1)
-                pass  # valid position
-            else:
-                new_position.x -= self.road.lenght  # to zależy jak będzie lenght (ew + - 1)
-
-        self.change_position(new_position)
-        # print(f"NEW POSITION: {new_position}")
-
-    def get_position(self):
-        return self.position
-
-    def get_direction(self):
-        return self.direction
-
-
-
-# map = Map(10, 10)
-# road = Road(MoveDirection.S, (0,10), (0, 0), 7)
-# car = Car(Vector_2d(0,10), map, road)
-# car2 = Car(Vector_2d(0,5), map, road)
-# road.add_car(car)
-# road.add_car(car2)
-
-#
-# road.move_cars()
-# road.move_cars()
-# road.move_cars()
-# road.move_cars()
-# road.move_cars()
-# road.move_cars()
-# road.move_cars()
-# road.move_cars()
-# road.move_cars()
+            self.will_turn = False
+            self.will_turn_right = False
+            self.will_turn_left = False
