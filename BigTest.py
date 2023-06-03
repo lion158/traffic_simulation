@@ -1,13 +1,3 @@
-import random
-import numpy as np
-import copy
-import sys
-
-import pygame
-
-from traffic_simulation.direction import MoveDirection
-
-
 #TODO drawing_next_turn
 cars = []
 map = Map(100)

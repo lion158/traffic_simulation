@@ -1,7 +1,7 @@
 import numpy as np
 
-from traffic_simulation.car import Car
-from traffic_simulation.intersection import Intersection
+from car import Car
+from intersection import Intersection
 
 
 class Map:

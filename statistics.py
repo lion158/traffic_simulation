@@ -1,8 +1,9 @@
-from traffic_simulation.engine import Engine
-from traffic_simulation.map import Map
-from traffic_simulation.simulation import Simulation
-import numpy as np
 import matplotlib.pyplot as plt
+import numpy as np
+from engine import Engine
+from map import Map
+from simulation import Simulation
+
 
 class Statistics:
     def mean_v(self, v_map, car_number):

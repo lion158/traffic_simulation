@@ -1,6 +1,6 @@
 import copy
 
-from traffic_simulation.vector import Vector
+from vector import Vector
 
 
 class Engine:

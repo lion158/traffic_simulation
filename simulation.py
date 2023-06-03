@@ -1,10 +1,10 @@
 import random
 
 import numpy as np
+from car import Car
+from direction import MoveDirection
+from vector import Vector
 
-from traffic_simulation.car import Car
-from traffic_simulation.direction import MoveDirection
-from traffic_simulation.vector import Vector
 
 #TODO INTERSECTIONS JAMS COŚ  JEST NIE TAK (MIAŁO TEGO NIE BYĆ) SPRAWDŹ
 

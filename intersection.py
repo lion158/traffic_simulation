@@ -1,7 +1,8 @@
 import random
-from traffic_simulation.car import Car
-from traffic_simulation.direction import MoveDirection
-from traffic_simulation.vector import Vector
+
+from car import Car
+from direction import MoveDirection
+from vector import Vector
 
 
 class Intersection:
