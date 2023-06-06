@@ -9,11 +9,17 @@ from vector import Vector
 #TODO INTERSECTIONS JAMS COŚ  JEST NIE TAK (MIAŁO TEGO NIE BYĆ) SPRAWDŹ
 
 class Simulation:
-    def __init__(self, v_max, map, cars_number, time):
+    def __init__(self, v_max, map, cars_number,lights, lights_time, time):
         self.__PROPABILITY = 0.2
         self.v_max = v_max
         self.map = map
         self.N = map.N
+        self.lights = lights
+        self.lights_time = lights_time
+        if lights and lights_time < 5:
+            raise Exception("Lights time must be greater then 4")
+        if not lights:
+            self.map.reset_lights_map()
         self.time = time
         self.cars = []
         self.cars_number = cars_number
@@ -385,7 +391,7 @@ class Simulation:
 
             new_map[w] = new_car_matrix
 
-        # #handling posible intersections jam
+        # #handling possible intersections jam
         # for intersection in self.map.intersections:
         #     intersection.check_jam(cars_v_matrix=new_map, cars_object_matrix=new_car_map)
 
@@ -410,6 +416,9 @@ class Simulation:
                         object.velocity = Vector(value, 0)
 
                     object.old_v = new_map[j][i]
+
+                    # update odometer
+                    object.odometer += object.old_v
 
         # update direction for cars which turning
         for pos_i in self.map.e + self.map.w:

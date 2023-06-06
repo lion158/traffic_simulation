@@ -11,6 +11,7 @@ class Car:
         self.velocity = Vector(0, 0)
         self.acceleration = Vector(0, 0)
         self.old_v = 0  ## helping variable to move function in simulation
+        self.odometer = 0 # measuring the distance traveled by an object
         self.will_turn = False
         self.will_turn_right = False
         self.will_turn_left = False

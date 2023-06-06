@@ -31,10 +31,14 @@ class Map:
         # self.w = [49]  # zamienielem w i e
         # self.e = [50]
         self.__PROPABILITY = 0.2
-        self.lights_positions_n = [(4, 3), (4, 11), (12, 3), (12, 11)]
-        self.lights_positions_s = [(1, 2), (1, 10), (9, 2), (9, 10)]
-        self.lights_positions_w = [(2, 4), (2, 12), (10, 4), (10, 12)]
-        self.lights_positions_e = [(3, 1), (3, 9), (11, 1), (11, 9)]
+        # self.lights_positions_n = [(4, 3), (4, 11), (12, 3), (12, 11)]
+        # self.lights_positions_s = [(1, 2), (1, 10), (9, 2), (9, 10)]
+        # self.lights_positions_w = [(2, 4), (2, 12), (10, 4), (10, 12)]
+        # self.lights_positions_e = [(3, 1), (3, 9), (11, 1), (11, 9)]
+        self.lights_positions_n = [(22, 21), (22, 51), (22, 81), (52, 21), (52, 51), (52, 81), (82, 21), (82, 51), (82, 81)]
+        self.lights_positions_s = [(19, 20), (19, 50), (19, 80), (49, 20), (49, 50), (49, 80), (79, 20), (79, 50), (79, 80)]
+        self.lights_positions_w = [(20, 22), (50, 22), (80, 22), (20, 52), (50, 52), (80, 52), (20, 82), (50, 82), (80, 82)]
+        self.lights_positions_e = [(21, 19), (21, 49), (21, 79), (51, 19), (51, 49), (51, 79), (81, 19), (81, 49), (81, 79)]
         self.intersections = []
         self.intersections_map_n = np.full((self.N, self.N), self.nothing_cell)
         self.intersections_map_s = np.full((self.N, self.N), self.nothing_cell)
@@ -146,3 +150,6 @@ class Map:
 
     def car_v_map_update(self, new_v_car_map):
         self.car_v_map = new_v_car_map
+
+    def reset_lights_map(self):
+        self.lights_map = np.full((self.N, self.N), self.nothing_cell)

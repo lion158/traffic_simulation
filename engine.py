@@ -17,26 +17,27 @@ class Engine:
         #         self.map.lights_map[11,9] = 0
         #     else:
         #         self.map.lights_map[11, 9] = 1
-        if self.ticks % 8 == 0:
-            y = self.map.lights_positions_n + self.map.lights_positions_s
-            x = self.map.lights_positions_e + self.map.lights_positions_w
-            if self.horizontal:
-                for pos in y:
-                    if self.map.lights_map[pos[0], pos[1]] == 1:
-                        self.map.lights_map[pos[0], pos[1]] = 0
-                    else:
-                        self.map.lights_map[pos[0], pos[1]] = 1
-            if self.vertical:
-                for pos in x:
-                    if self.map.lights_map[pos[0], pos[1]] == 0:
-                        self.map.lights_map[pos[0], pos[1]] = 1
-                    else:
-                        self.map.lights_map[pos[0], pos[1]] = 0
-        elif self.ticks % 8 == 5:
-            for pos in self.map.lights_positions_n + self.map.lights_positions_s + self.map.lights_positions_e + self.map.lights_positions_w:
-                self.map.lights_map[pos[0], pos[1]] = 0
-            self.vertical = not self.vertical
-            self.horizontal = not self.horizontal
+        if self.simulation.lights:
+            if self.ticks % self.simulation.lights_time == 0:
+                y = self.map.lights_positions_n + self.map.lights_positions_s
+                x = self.map.lights_positions_e + self.map.lights_positions_w
+                if self.horizontal:
+                    for pos in y:
+                        if self.map.lights_map[pos[0], pos[1]] == 1:
+                            self.map.lights_map[pos[0], pos[1]] = 0
+                        else:
+                            self.map.lights_map[pos[0], pos[1]] = 1
+                if self.vertical:
+                    for pos in x:
+                        if self.map.lights_map[pos[0], pos[1]] == 0:
+                            self.map.lights_map[pos[0], pos[1]] = 1
+                        else:
+                            self.map.lights_map[pos[0], pos[1]] = 0
+            elif self.ticks % self.simulation.lights_time == self.simulation.lights_time - 3:
+                for pos in self.map.lights_positions_n + self.map.lights_positions_s + self.map.lights_positions_e + self.map.lights_positions_w:
+                    self.map.lights_map[pos[0], pos[1]] = 0
+                self.vertical = not self.vertical
+                self.horizontal = not self.horizontal
 
         matrix = copy.deepcopy(self.map.car_v_map)
         new_map = self.simulation.move(matrix, time)
