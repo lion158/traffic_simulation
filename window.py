@@ -84,7 +84,7 @@ class Window:
 
             self.draw_roads()
 
-            self.draw_cars(delta_time)
+            self.draw_cars(float(1 / 60))
 
             # Aktualizacja ekranu
             pygame.display.update()
