@@ -1,10 +1,10 @@
 import matplotlib.pyplot as plt
 import numpy as np
 import seaborn as sns
-from engine import Engine
-from map import Map
-from simulation import Simulation
-from car import Car
+from simulation.engine import Engine
+from simulation.map import Map
+from simulation.simulation import Simulation
+from simulation.car import Car
 
 
 class Statistics:

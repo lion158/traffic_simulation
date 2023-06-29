@@ -1,9 +1,8 @@
-from engine import Engine
-from map import Map
-from simulation import Simulation
-from window import Window
+from simulation.engine import Engine
+from simulation.map import Map
+from simulation.simulation import Simulation
+from simulation.window import Window
 
-#TODO INTERSECTIONS JAMS COŚ  JEST NIE TAK (MIAŁO TEGO NIE BYĆ) SPRAWDŹ
 def main():
     map = Map(100)
     simulation = Simulation(v_max=6, map=map, cars_number=200, lights=True, lights_time=5, time=1)
