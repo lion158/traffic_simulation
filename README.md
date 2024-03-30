@@ -11,3 +11,4 @@ Running the "main" file will start the visualization of the infinite simulation.
 
 ## Research
 The "research" notebook contains details of the traffic tests performed using the implemented simulation.
+Also you can check `Symulacja_ruchu_drogowego.pdf` file. 
